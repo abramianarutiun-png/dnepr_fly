@@ -51,8 +51,8 @@ function update() {
   bird.update();
 
   // Pipes
-  if(frames % 100 === 0) spawnPipe();
-  pipes.forEach(p => p.x -= 2);
+  if(frames % 120 === 0) spawnPipe();
+  pipes.forEach(p => p.x -= 1.5);
 
   // Collision
   pipes.forEach(p => {
