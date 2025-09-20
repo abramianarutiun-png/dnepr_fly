@@ -68,6 +68,7 @@
     const scoreElement = document.querySelector(".score");
     const startScreen = document.querySelector(".start-screen");
     const startButton = document.querySelector(".start-button");
+    const startScreenTitle = startScreen.querySelector('h1');
 
     const originalWidth = 360;
     const originalHeight = 600;
@@ -75,193 +76,204 @@
     canvas.height = originalHeight;
     ctx.imageSmoothingEnabled = false;
 
-    let frames = 0;
-    let gameOver = false;
+    // A flag to control the main loop
+    let gameOver = false; 
     let score = 0;
     let gameStarted = false;
     let cityBackground;
+    let frames = 0;
+    
+    // Control game speed
+    let gameSpeed = 1.5;
 
     function createCityBackground() {
-      const bgCanvas = document.createElement('canvas');
-      bgCanvas.width = canvas.width;
-      bgCanvas.height = canvas.height;
-      const bgCtx = bgCanvas.getContext('2d');
-      bgCtx.imageSmoothingEnabled = false;
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCtx.imageSmoothingEnabled = false;
 
-      const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
-      gradient.addColorStop(0, '#4a7db9');
-      gradient.addColorStop(0.7, '#87CEEB');
-      bgCtx.fillStyle = gradient;
-      bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+        const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
+        gradient.addColorStop(0, '#4a7db9');
+        gradient.addColorStop(0.7, '#87CEEB');
+        bgCtx.fillStyle = gradient;
+        bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
 
-      bgCtx.fillStyle = '#ffdd00';
-      bgCtx.beginPath();
-      bgCtx.arc(300, 80, 40, 0, Math.PI * 2);
-      bgCtx.fill();
+        bgCtx.fillStyle = '#ffdd00';
+        bgCtx.beginPath();
+        bgCtx.arc(300, 80, 40, 0, Math.PI * 2);
+        bgCtx.fill();
 
-      // Distant city
-      bgCtx.fillStyle = '#2c3e50';
-      for (let i = 0; i < bgCanvas.width; i += 40) {
-        const h = 60 + Math.random() * 80;
-        bgCtx.fillRect(i, bgCanvas.height - 120 - h, 35, h);
-      }
-      
-      // Mid-distance buildings
-      bgCtx.fillStyle = '#34495e';
-      for (let i = 0; i < bgCanvas.width; i += 30) {
-        const h = 40 + Math.random() * 60;
-        bgCtx.fillRect(i, bgCanvas.height - 80 - h, 25, h);
-      }
-      
-      // River
-      bgCtx.fillStyle = '#3498db';
-      bgCtx.fillRect(0, bgCanvas.height - 20, bgCanvas.width, 20);
-      
-      return bgCanvas;
+        bgCtx.fillStyle = '#2c3e50';
+        for (let i = 0; i < bgCanvas.width; i += 40) {
+            const h = 60 + Math.random() * 80;
+            bgCtx.fillRect(i, bgCanvas.height - 120 - h, 35, h);
+        }
+
+        bgCtx.fillStyle = '#34495e';
+        for (let i = 0; i < bgCanvas.width; i += 30) {
+            const h = 40 + Math.random() * 60;
+            bgCtx.fillRect(i, bgCanvas.height - 80 - h, 25, h);
+        }
+
+        bgCtx.fillStyle = '#3498db';
+        bgCtx.fillRect(0, bgCanvas.height - 20, bgCanvas.width, 20);
+
+        return bgCanvas;
     }
 
     const plane = {
-      x: 60, y: 250, width: 45, height: 26,
-      gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
-      draw() {
-        ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        ctx.rotate(this.rotation);
-        const bodyX = -this.width / 2;
-        const bodyY = -this.height / 2;
-
-        ctx.fillStyle = '#0057b8';
-        ctx.fillRect(bodyX, bodyY + 4, 35, 8);
-        ctx.fillStyle = '#87CEEB';
-        ctx.fillRect(bodyX + 22, bodyY + 5, 8, 6);
-        ctx.fillStyle = '#004494';
-        ctx.fillRect(bodyX - 2, bodyY, 4, 10);
-        ctx.fillRect(bodyX - 4, bodyY + 6, 8, 3);
-        ctx.fillStyle = '#c0c0c0';
-        ctx.fillRect(bodyX + 10, bodyY - 2, 18, 5);
-        ctx.fillStyle = '#a9a9a9';
-        ctx.fillRect(bodyX + 10, bodyY + 13, 18, 4);
-        ctx.fillStyle = '#36454F';
-        ctx.fillRect(bodyX + 35, bodyY + 5, 5, 6);
-        ctx.fillStyle = 'white';
-        if (Math.floor(frames / 3) % 2 === 0) {
-          ctx.fillRect(bodyX + 40, bodyY + 7, 5, 2);
-          ctx.fillRect(bodyX + 41.5, bodyY + 5, 2, 6);
-        } else {
-          ctx.save();
-          ctx.translate(bodyX + 42.5, bodyY + 8);
-          ctx.rotate(Math.PI / 4);
-          ctx.fillRect(-2.5, -1, 5, 2); ctx.fillRect(-1, -2.5, 2, 5);
-          ctx.restore();
+        x: 60, y: 250, width: 45, height: 26,
+        gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
+        draw() {
+            ctx.save();
+            ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+            ctx.rotate(this.rotation);
+            const bodyX = -this.width / 2;
+            const bodyY = -this.height / 2;
+            ctx.fillStyle = '#0057b8';
+            ctx.fillRect(bodyX, bodyY + 4, 35, 8);
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(bodyX + 22, bodyY + 5, 8, 6);
+            ctx.fillStyle = '#004494';
+            ctx.fillRect(bodyX - 2, bodyY, 4, 10);
+            ctx.fillRect(bodyX - 4, bodyY + 6, 8, 3);
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(bodyX + 10, bodyY - 2, 18, 5);
+            ctx.fillStyle = '#a9a9a9';
+            ctx.fillRect(bodyX + 10, bodyY + 13, 18, 4);
+            ctx.fillStyle = '#36454F';
+            ctx.fillRect(bodyX + 35, bodyY + 5, 5, 6);
+            ctx.fillStyle = 'white';
+            if (Math.floor(frames / 3) % 2 === 0) {
+                ctx.fillRect(bodyX + 40, bodyY + 7, 5, 2);
+                ctx.fillRect(bodyX + 41.5, bodyY + 5, 2, 6);
+            } else {
+                ctx.save();
+                ctx.translate(bodyX + 42.5, bodyY + 8);
+                ctx.rotate(Math.PI / 4);
+                ctx.fillRect(-2.5, -1, 5, 2);
+                ctx.fillRect(-1, -2.5, 2, 5);
+                ctx.restore();
+            }
+            ctx.fillStyle = '#36454F';
+            ctx.fillRect(bodyX + 12, bodyY + 17, 2, 5);
+            ctx.fillRect(bodyX + 24, bodyY + 17, 2, 5);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(bodyX + 11, bodyY + 22, 4, 4);
+            ctx.fillRect(bodyX + 23, bodyY + 22, 4, 4);
+            ctx.restore();
+        },
+        flap() { this.velocity = this.lift; },
+        update() {
+            this.velocity += this.gravity;
+            this.y += this.velocity;
+            this.rotation = Math.min(Math.max(this.velocity / 15, -0.4), 0.7);
+            if (this.y + this.height > canvas.height || this.y < 0) {
+                setGameOver();
+            }
         }
-        ctx.fillStyle = '#36454F';
-        ctx.fillRect(bodyX + 12, bodyY + 17, 2, 5);
-        ctx.fillRect(bodyX + 24, bodyY + 17, 2, 5);
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(bodyX + 11, bodyY + 22, 4, 4);
-        ctx.fillRect(bodyX + 23, bodyY + 22, 4, 4);
-        ctx.restore();
-      },
-      flap() { this.velocity = this.lift; },
-      update() {
-        this.velocity += this.gravity;
-        this.y += this.velocity;
-        this.rotation = Math.min(Math.max(this.velocity / 15, -0.4), 0.7);
-        if (this.y + this.height > canvas.height || this.y < 0) {
-            setGameOver();
-        }
-      }
     };
 
     const obstacles = {
-      list: [],
-      width: 50,
-      gap: 180,
-      spawn() {
-        if (frames % 120 === 0) {
-          const topHeight = Math.floor(Math.random() * (canvas.height - this.gap - 150)) + 75;
-          this.list.push({ x: canvas.width, top: topHeight, passed: false });
-        }
-      },
-      update() {
-        this.list.forEach(o => {
-          o.x -= 2.5;
-          if (!o.passed && plane.x > o.x + this.width) {
-            o.passed = true;
-            score++;
-            scoreElement.textContent = `SCORE: ${score}`;
-          }
-          if (plane.x < o.x + this.width && plane.x + plane.width > o.x) {
-            if (plane.y < o.top || plane.y + plane.height > o.top + this.gap) {
-              setGameOver();
+        list: [],
+        width: 50,
+        gap: 180,
+        spawn() {
+            if (frames % 120 === 0) {
+                const topHeight = Math.floor(Math.random() * (canvas.height - this.gap - 150)) + 75;
+                this.list.push({ x: canvas.width, top: topHeight, passed: false });
             }
-          }
-        });
-        this.list = this.list.filter(o => o.x + this.width > 0);
-      },
-      draw() {
-        this.list.forEach(o => {
-          ctx.fillStyle = '#556B2F';
-          ctx.fillRect(o.x, 0, this.width, o.top);
-          ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - o.top - this.gap);
-        });
-      }
+        },
+        update() {
+            this.list.forEach(o => {
+                o.x -= gameSpeed;
+                if (!o.passed && plane.x > o.x + this.width) {
+                    o.passed = true;
+                    score++;
+                    scoreElement.textContent = `SCORE: ${score}`;
+                }
+                if (plane.x < o.x + this.width && plane.x + plane.width > o.x) {
+                    if (plane.y < o.top || plane.y + plane.height > o.top + this.gap) {
+                        setGameOver();
+                    }
+                }
+            });
+            this.list = this.list.filter(o => o.x + this.width > 0);
+        },
+        draw() {
+            this.list.forEach(o => {
+                ctx.fillStyle = '#556B2F';
+                ctx.fillRect(o.x, 0, this.width, o.top);
+                ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - o.top - this.gap);
+            });
+        }
     };
 
     function setGameOver() {
         if (gameOver) return;
         gameOver = true;
+
+        startScreenTitle.textContent = "MISSION FAILED";
+        startScreen.querySelector('p').textContent = `FINAL SCORE: ${score}. Tap to try again!`;
+        startScreen.style.display = 'flex';
+        startButton.textContent = "TRY AGAIN";
+
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.game.setScore({score: score});
         }
-        setTimeout(() => startScreen.style.display = 'flex', 1000);
     }
 
     function resetGame() {
-      plane.y = 250; plane.velocity = 0; plane.rotation = 0;
-      obstacles.list = []; gameOver = false; frames = 0; score = 0;
-      scoreElement.textContent = `SCORE: ${score}`;
-      startScreen.style.display = 'none';
-      if (!gameStarted) {
-        gameStarted = true;
-        loop();
-      }
+        plane.y = 250;
+        plane.velocity = 0;
+        plane.rotation = 0;
+        obstacles.list = [];
+        gameOver = false;
+        score = 0;
+        frames = 0;
+        scoreElement.textContent = `SCORE: ${score}`;
+        startScreen.style.display = 'none';
+
+        if (!gameStarted) {
+            gameStarted = true;
+            loop();
+        } else {
+            loop();
+        }
     }
 
     function loop() {
-      if (!gameOver) {
-        ctx.drawImage(cityBackground, 0, 0);
-        obstacles.spawn();
-        obstacles.update();
-        obstacles.draw();
-        plane.update();
-        plane.draw();
-        frames++;
-        requestAnimationFrame(loop);
-      } else {
-         // Show Game Over screen elements
-        ctx.fillStyle = "rgba(0,0,0,0.7)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ff4444";
-        ctx.font = "bold 30px 'Courier New'";
-        ctx.textAlign = "center";
-        ctx.fillText("MISSION FAILED", canvas.width / 2, canvas.height / 2 - 20);
-        ctx.fillStyle = "white";
-        ctx.font = "20px 'Courier New'";
-        ctx.fillText(`FINAL SCORE: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-      }
+        if (!gameOver) {
+            ctx.drawImage(cityBackground, 0, 0);
+            obstacles.spawn();
+            obstacles.update();
+            obstacles.draw();
+            plane.update();
+            plane.draw();
+            frames++;
+            requestAnimationFrame(loop);
+        }
     }
-
+    
+    // Event listeners
     startButton.addEventListener('click', resetGame);
-    document.addEventListener('click', () => gameStarted && !gameOver ? plane.flap() : null);
+    document.addEventListener('click', () => {
+        if (gameStarted && !gameOver) {
+            plane.flap();
+        }
+    });
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && gameStarted && !gameOver) plane.flap();
+        if (e.code === 'Space' && gameStarted && !gameOver) {
+            plane.flap();
+        }
     });
 
+    // Initial setup
     cityBackground = createCityBackground();
     ctx.drawImage(cityBackground, 0, 0);
     plane.draw();
-  </script>
+</script>
 </body>
 </html>
