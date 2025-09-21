@@ -330,8 +330,8 @@ function sizeEverything() {
   // Game speed proportional to width; tuned for phone feel
   gameSpeed = Math.max(2.2, baseW * 0.0045);
 
-  // Plane size ~ 12% of screen width
-  plane.width = Math.max(40, Math.floor(baseW * 0.12));
+  // Plane size ~ 14% of screen width
+  plane.width = Math.max(40, Math.floor(baseW * 0.14));
   plane.height = Math.max(24, Math.floor(plane.width * planeAspect));
   // Place plane at ~17% from left, vertically centered initially
   if (!gameStarted) {
@@ -341,7 +341,7 @@ function sizeEverything() {
 
   // Physics scale with height
   plane.gravity = Math.max(0.15, baseH * 0.00045);
-  plane.lift = -Math.max(4, Math.floor(baseH * 0.012));
+  plane.lift = -Math.max(4, Math.floor(baseH * 0.01));
 
   // Obstacles scale
   obstacles.width = Math.max(40, Math.floor(baseW * 0.12));
