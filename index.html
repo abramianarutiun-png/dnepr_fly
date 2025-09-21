@@ -51,8 +51,8 @@ const startScreen = document.querySelector(".start-screen");
 const startButton = document.querySelector(".start-button");
 const startScreenTitle = startScreen.querySelector('h1');
 
-canvas.width = 360;
-canvas.height = 600;
+canvas.width = window.innerWidth * 0.9;
+canvas.height = window.innerHeight * 0.9;
 ctx.imageSmoothingEnabled = false;
 
 let gameOver = false, score = 0, gameStarted = false, cityBackground, frames = 0, gameSpeed = 1.5;
