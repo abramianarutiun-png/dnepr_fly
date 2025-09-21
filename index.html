@@ -10,7 +10,6 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    /* Safe area for iOS notch */
     --inset-top: env(safe-area-inset-top);
     --inset-bottom: env(safe-area-inset-bottom);
     --inset-left: env(safe-area-inset-left);
@@ -35,7 +34,7 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
     border-radius: 10px;
     overflow: hidden;
-    touch-action: none; /* prevent browser gestures while playing */
+    touch-action: none; 
   }
   #gameCanvas {
     display: block;
@@ -112,24 +111,20 @@
   </div>
 
 <script>
-/* -------- Assets -------- */
 const planeImage = new Image();
-/* Put your plane file in repo, e.g., /assets/jetthing.png */
 planeImage.src = 'jetthing.png';
 
 let imageLoaded = false;
 let planeMask = []; // boolean mask (alpha>0) in image pixel space
-let planeAspect = 26/45; // fallback ratio; will update after image load
+let planeAspect = 26/45;
 
 planeImage.onload = () => {
   imageLoaded = true;
   planeMask = createMask(planeImage);
   planeAspect = planeImage.height / planeImage.width;
-  // Recompute plane size for current canvas after image is ready
   sizeEverything();
 };
 
-/* -------- DOM / Canvas -------- */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: true });
 ctx.imageSmoothingEnabled = false;
@@ -189,6 +184,7 @@ const obstacles = {
         o.passed = true;
         score++;
         scoreElement.textContent = `CЧЕТ: ${score}`;
+        gameSpeed += 0.1
       }
       // coarse bbox to skip far checks
       const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height };
