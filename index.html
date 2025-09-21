@@ -388,6 +388,8 @@ function resetGame() {
   plane.x = Math.floor(canvas.width * 0.17);
   plane.y = Math.floor(canvas.height * 0.45);
 
+  gameSpeed = Math.max(2.2, canvas.width * 0.0045);
+  obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed));
   if (!gameStarted) {
     gameStarted = true;
   }
