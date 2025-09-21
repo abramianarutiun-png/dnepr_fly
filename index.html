@@ -61,112 +61,68 @@
             <button class="start-button">START FLIGHT</button>
         </div>
     </div>
-
     <script>
         const planeImage = new Image();
-planeImage.src = 'benya1.png'; // ⚠️ Replace with the actual path
-
-let imageLoaded = false;
-planeImage.onload = () => {
-    imageLoaded = true;
-                            };
+        planeImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUAAAAFACAYAAADNkKWqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAmOSURBVHhe7dsxqoRLXofh2crgJmRijSed3BFchWAirmcYQVO34BrMxQ1cg85e+J1zm7r98XWf54E3rI+uouqf9e9+BwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwM/0/7/sSsmK5GonAAAAAElFTkSuQmCC';
+        let imageLoaded = false;
+        planeImage.onload = () => {
+            imageLoaded = true;
+        };
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const scoreElement = document.querySelector(".score");
         const startScreen = document.querySelector(".start-screen");
         const startButton = document.querySelector(".start-button");
         const startScreenTitle = startScreen.querySelector('h1');
-
         const originalWidth = 360;
         const originalHeight = 600;
         canvas.width = originalWidth;
         canvas.height = originalHeight;
         ctx.imageSmoothingEnabled = false;
-
         let gameOver = false;
         let score = 0;
         let gameStarted = false;
         let cityBackground;
         let frames = 0;
-        
         let gameSpeed = 1.5;
-
         function createCityBackground() {
             const bgCanvas = document.createElement('canvas');
             bgCanvas.width = canvas.width;
             bgCanvas.height = canvas.height;
             const bgCtx = bgCanvas.getContext('2d');
             bgCtx.imageSmoothingEnabled = false;
-
             const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
             gradient.addColorStop(0, '#4a7db9');
             gradient.addColorStop(0.7, '#87CEEB');
             bgCtx.fillStyle = gradient;
             bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
             bgCtx.fillStyle = '#ffdd00';
             bgCtx.beginPath();
             bgCtx.arc(300, 80, 40, 0, Math.PI * 2);
             bgCtx.fill();
-
             bgCtx.fillStyle = '#2c3e50';
             for (let i = 0; i < bgCanvas.width; i += 40) {
                 const h = 60 + Math.random() * 80;
                 bgCtx.fillRect(i, bgCanvas.height - 120 - h, 35, h);
             }
-
             bgCtx.fillStyle = '#34495e';
             for (let i = 0; i < bgCanvas.width; i += 30) {
                 const h = 40 + Math.random() * 60;
                 bgCtx.fillRect(i, bgCanvas.height - 80 - h, 25, h);
             }
-
             bgCtx.fillStyle = '#3498db';
             bgCtx.fillRect(0, bgCanvas.height - 20, bgCanvas.width, 20);
-
             return bgCanvas;
         }
-
         const plane = {
             x: 60, y: 250, width: 45, height: 26,
             gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
             draw() {
+                if (!imageLoaded) return; // Skip drawing until image is ready
                 ctx.save();
                 ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
                 ctx.rotate(this.rotation);
-                const bodyX = -this.width / 2;
-                const bodyY = -this.height / 2;
-                ctx.fillStyle = '#0057b8';
-                ctx.fillRect(bodyX, bodyY + 4, 35, 8);
-                ctx.fillStyle = '#87CEEB';
-                ctx.fillRect(bodyX + 22, bodyY + 5, 8, 6);
-                ctx.fillStyle = '#004494';
-                ctx.fillRect(bodyX - 2, bodyY, 4, 10);
-                ctx.fillRect(bodyX - 4, bodyY + 6, 8, 3);
-                ctx.fillStyle = '#c0c0c0';
-                ctx.fillRect(bodyX + 10, bodyY - 2, 18, 5);
-                ctx.fillStyle = '#a9a9a9';
-                ctx.fillRect(bodyX + 10, bodyY + 13, 18, 4);
-                ctx.fillStyle = '#36454F';
-                ctx.fillRect(bodyX + 35, bodyY + 5, 5, 6);
-                ctx.fillStyle = 'white';
-                if (Math.floor(frames / 3) % 2 === 0) {
-                    ctx.fillRect(bodyX + 40, bodyY + 7, 5, 2);
-                    ctx.fillRect(bodyX + 41.5, bodyY + 5, 2, 6);
-                } else {
-                    ctx.save();
-                    ctx.translate(bodyX + 42.5, bodyY + 8);
-                    ctx.rotate(Math.PI / 4);
-                    ctx.fillRect(-2.5, -1, 5, 2);
-                    ctx.fillRect(-1, -2.5, 2, 5);
-                    ctx.restore();
-                }
-                ctx.fillStyle = '#36454F';
-                ctx.fillRect(bodyX + 12, bodyY + 17, 2, 5);
-                ctx.fillRect(bodyX + 24, bodyY + 17, 2, 5);
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(bodyX + 11, bodyY + 22, 4, 4);
-                ctx.fillRect(bodyX + 23, bodyY + 22, 4, 4);
+                ctx.drawImage(planeImage, -this.width / 2, -this.height / 2, this.width, this.height);
                 ctx.restore();
             },
             flap() { this.velocity = this.lift; },
@@ -179,7 +135,6 @@ planeImage.onload = () => {
                 }
             }
         };
-
         const obstacles = {
             list: [],
             width: 50,
@@ -214,22 +169,18 @@ planeImage.onload = () => {
                 });
             }
         };
-
         function setGameOver() {
             if (gameOver) return;
             gameOver = true;
-            
             startScreenTitle.textContent = "MISSION FAILED";
             startScreen.querySelector('p').textContent = `FINAL SCORE: ${score}. Tap to try again!`;
             startScreen.style.display = 'flex';
             startButton.textContent = "TRY AGAIN";
-
             if (window.Telegram && window.Telegram.WebApp) {
                 window.Telegram.WebApp.ready();
                 window.Telegram.WebApp.game.setScore({score: score});
             }
         }
-
         function resetGame() {
             plane.y = 250;
             plane.velocity = 0;
@@ -240,7 +191,6 @@ planeImage.onload = () => {
             frames = 0;
             scoreElement.textContent = `SCORE: ${score}`;
             startScreen.style.display = 'none';
-
             if (!gameStarted) {
                 gameStarted = true;
                 loop();
@@ -248,7 +198,6 @@ planeImage.onload = () => {
                 loop();
             }
         }
-
         function loop() {
             if (!gameOver) {
                 ctx.drawImage(cityBackground, 0, 0);
@@ -261,7 +210,6 @@ planeImage.onload = () => {
                 requestAnimationFrame(loop);
             }
         }
-        
         startButton.addEventListener('click', resetGame);
         document.addEventListener('click', () => {
             if (gameStarted && !gameOver) {
@@ -273,7 +221,6 @@ planeImage.onload = () => {
                 plane.flap();
             }
         });
-
         cityBackground = createCityBackground();
         ctx.drawImage(cityBackground, 0, 0);
         plane.draw();
