@@ -102,12 +102,12 @@
 </head>
 <body>
   <div class="game-container">
-    <div class="score">SCORE: 0</div>
+    <div class="score">СЧЕТ: 0</div>
     <canvas id="gameCanvas"></canvas>
     <div class="start-screen">
       <h1>DNEPR FLY</h1>
       <p>Нажми чтобы полетать над Столицей Мира!</p>
-      <button class="start-button">START FLIGHT</button>
+      <button class="start-button">НАЧАТЬ ПОЛЕТ</button>
     </div>
   </div>
 
@@ -365,8 +365,8 @@ function drawIdle() {
 function setGameOver() {
   if (gameOver) return;
   gameOver = true;
-  startScreenTitle.textContent = 'MISSION FAILED';
-  startScreen.querySelector('p').textContent = `FINAL SCORE: ${score}. Tap to try again!`;
+  startScreenTitle.textContent = 'ОЙ попал в еврейское здание!';
+  startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Начать заново`;
   startScreen.style.display = 'flex';
   startButton.textContent = 'TRY AGAIN';
 
@@ -383,7 +383,7 @@ function resetGame() {
   gameOver = false;
   score = 0;
   frames = 0;
-  scoreElement.textContent = `SCORE: ${score}`;
+  scoreElement.textContent = `СЧЕТ: ${score}`;
   startScreen.style.display = 'none';
 
   // Reset plane
