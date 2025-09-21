@@ -188,7 +188,7 @@ const obstacles = {
       if (!o.passed && plane.x > o.x + this.width) {
         o.passed = true;
         score++;
-        scoreElement.textContent = `SCORE: ${score}`;
+        scoreElement.textContent = `CЧЕТ: ${score}`;
       }
       // coarse bbox to skip far checks
       const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height };
@@ -365,10 +365,10 @@ function drawIdle() {
 function setGameOver() {
   if (gameOver) return;
   gameOver = true;
-  startScreenTitle.textContent = 'ОЙ попал в еврейское здание!';
-  startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Начать заново`;
+  startScreenTitle.textContent = 'ОЙ, попал в еврейское здание!';
+  startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`;
   startScreen.style.display = 'flex';
-  startButton.textContent = 'TRY AGAIN';
+  startButton.textContent = 'НАЧАТЬ ЗАНОВО';
 
   try {
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) {
