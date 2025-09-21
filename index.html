@@ -1,153 +1,449 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"
+/>
 <title>Dnepr Fly</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-    body {
-        display: flex; justify-content: center; align-items: center;
-        height: 100vh; margin: 0;
-        background-color: #1a2a6c;
-        font-family: 'Courier New', monospace; overflow: hidden;
-        image-rendering: pixelated;
-    }
-    .game-container { position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; }
-    #gameCanvas { background-color: #87CEEB; display: block; border: 5px solid #2a7a8c; border-radius: 8px; }
-    .score { position: absolute; top: 10px; left: 10px; font-size: 24px; font-weight: bold; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); z-index: 5; }
-    .start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.85); color: white; z-index: 10; }
-    .start-screen h1 { font-size: 40px; margin-bottom: 20px; color: #ffd700; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
-    .start-screen p { font-size: 16px; margin-bottom: 30px; text-align: center; max-width: 80%; line-height: 1.5; }
-    .start-button { padding: 12px 30px; font-size: 20px; background-color: #0057b8; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-family: 'Courier New', monospace; }
-    .start-button:hover { background-color: #ffd700; color: #0057b8; transform: scale(1.05); }
+  :root {
+    /* Safe area for iOS notch */
+    --inset-top: env(safe-area-inset-top);
+    --inset-bottom: env(safe-area-inset-bottom);
+    --inset-left: env(safe-area-inset-left);
+    --inset-right: env(safe-area-inset-right);
+  }
+  html, body {
+    height: 100%;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    background-color: #1a2a6c;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    image-rendering: pixelated;
+    padding: var(--inset-top) var(--inset-right) var(--inset-bottom) var(--inset-left);
+  }
+  .game-container {
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border-radius: 10px;
+    overflow: hidden;
+    touch-action: none; /* prevent browser gestures while playing */
+  }
+  #gameCanvas {
+    display: block;
+    background-color: #87CEEB;
+    border: 5px solid #2a7a8c;
+    border-radius: 8px;
+    image-rendering: pixelated;
+  }
+  .score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    z-index: 5;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+  }
+  .start-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0,0,0,0.85);
+    color: white;
+    z-index: 10;
+    text-align: center;
+  }
+  .start-screen h1 {
+    font-size: 40px;
+    margin-bottom: 20px;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  .start-screen p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    max-width: 80%;
+    line-height: 1.5;
+  }
+  .start-button {
+    padding: 12px 30px;
+    font-size: 20px;
+    background-color: #0057b8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    font-family: 'Courier New', monospace;
+  }
+  .start-button:hover {
+    background-color: #ffd700;
+    color: #0057b8;
+    transform: scale(1.05);
+  }
 </style>
 </head>
 <body>
-<div class="game-container">
+  <div class="game-container">
     <div class="score">SCORE: 0</div>
     <canvas id="gameCanvas"></canvas>
     <div class="start-screen">
-        <h1>DNEPR FLY</h1>
-        <p>Tap to fly the plane and avoid the buildings. Good luck!</p>
-        <button class="start-button">START FLIGHT</button>
+      <h1>DNEPR FLY</h1>
+      <p>Tap anywhere to start. Tap to fly the plane and avoid the buildings. Good luck!</p>
+      <button class="start-button">START FLIGHT</button>
     </div>
-</div>
+  </div>
+
 <script>
+/* -------- Assets -------- */
 const planeImage = new Image();
+/* Put your plane file in repo, e.g., /assets/jetthing.png */
 planeImage.src = 'jetthing.png';
+
 let imageLoaded = false;
-let planeMask = [];
+let planeMask = []; // boolean mask (alpha>0) in image pixel space
+let planeAspect = 26/45; // fallback ratio; will update after image load
 
 planeImage.onload = () => {
-    imageLoaded = true;
-    planeMask = createMask(planeImage);
+  imageLoaded = true;
+  planeMask = createMask(planeImage);
+  planeAspect = planeImage.height / planeImage.width;
+  // Recompute plane size for current canvas after image is ready
+  sizeEverything();
 };
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const scoreElement = document.querySelector(".score");
-const startScreen = document.querySelector(".start-screen");
-const startButton = document.querySelector(".start-button");
-const startScreenTitle = startScreen.querySelector('h1');
-
-canvas.width = 720;
-canvas.height = 1200;
+/* -------- DOM / Canvas -------- */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d', { alpha: true });
 ctx.imageSmoothingEnabled = false;
 
-let gameOver = false, score = 0, gameStarted = false, cityBackground, frames = 0, gameSpeed = 1.5;
+const scoreElement = document.querySelector('.score');
+const startScreen = document.querySelector('.start-screen');
+const startButton = document.querySelector('.start-button');
+const startScreenTitle = startScreen.querySelector('h1');
 
-function createCityBackground() {
-    const bgCanvas = document.createElement('canvas');
-    bgCanvas.width = canvas.width;
-    bgCanvas.height = canvas.height;
-    const bgCtx = bgCanvas.getContext('2d');
-    bgCtx.imageSmoothingEnabled = false;
-    const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
-    gradient.addColorStop(0, '#4a7db9');
-    gradient.addColorStop(0.7, '#87CEEB');
-    bgCtx.fillStyle = gradient;
-    bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-    bgCtx.fillStyle = '#ffdd00';
-    bgCtx.beginPath();
-    bgCtx.arc(300, 80, 40, 0, Math.PI * 2);
-    bgCtx.fill();
-    bgCtx.fillStyle = '#2c3e50';
-    for (let i = 0; i < bgCanvas.width; i += 40) {
-        const h = 60 + Math.random() * 80;
-        bgCtx.fillRect(i, bgCanvas.height - 120 - h, 35, h);
-    }
-    bgCtx.fillStyle = '#34495e';
-    for (let i = 0; i < bgCanvas.width; i += 30) {
-        const h = 40 + Math.random() * 60;
-        bgCtx.fillRect(i, bgCanvas.height - 80 - h, 25, h);
-    }
-    bgCtx.fillStyle = '#3498db';
-    bgCtx.fillRect(0, bgCanvas.height - 20, bgCanvas.width, 20);
-    return bgCanvas;
-}
+/* -------- Game State -------- */
+let gameOver = false;
+let gameStarted = false;
+let score = 0;
+let frames = 0;
+let cityBackground = null;
 
-function createMask(image) {
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width = image.width;
-    offCanvas.height = image.height;
-    const offCtx = offCanvas.getContext('2d');
-    offCtx.drawImage(image, 0, 0);
-    const data = offCtx.getImageData(0, 0, image.width, image.height).data;
-    const mask = [];
-    for (let i = 0; i < data.length; i += 4) {
-        mask.push(data[i + 3] > 0);
-    }
-    return mask;
-}
-
-function rectsOverlap(a, b) {
-    return !(a.x + a.width <= b.x || a.x >= b.x + b.width || a.y + a.height <= b.y || a.y >= b.y + b.height);
-}
-
-function pixelPerfectCollision(spriteA, maskA, spriteB) {
-    if (!rectsOverlap(spriteA, spriteB)) return false;
-    const startX = Math.max(spriteA.x, spriteB.x);
-    const startY = Math.max(spriteA.y, spriteB.y);
-    const endX = Math.min(spriteA.x + spriteA.width, spriteB.x + spriteB.width);
-    const endY = Math.min(spriteA.y + spriteA.height, spriteB.y + spriteB.height);
-    for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-            const ax = Math.floor((x - spriteA.x) * (planeImage.width / spriteA.width));
-            const ay = Math.floor((y - spriteA.y) * (planeImage.height / spriteA.height));
-            const bx = x - spriteB.x;
-            const by = y - spriteB.y;
-            if (maskA[ay * planeImage.width + ax] && spriteB.mask && spriteB.mask[by * spriteB.width + bx]) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-const plane = {
-    x: 60, y: 250, width: 45, height: 26,
-    gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
-    draw() {
-        if (!imageLoaded) return;
-        ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-        ctx.rotate(this.rotation);
-        ctx.drawImage(planeImage, -this.width / 2, -this.height / 2, this.width, this.height);
-        ctx.restore();
-    },
-    flap() { this.velocity = this.lift; },
-    update() {
-        this.velocity += this.gravity;
-        this.y += this.velocity;
-        this.rotation = Math.min(Math.max(this.velocity / 15, -0.4), 0.7);
-        if (this.y + this.height > canvas.height || this.y < 0) setGameOver();
-    }
+/* Scaled gameplay params (computed per resize) */
+let gameSpeed = 2.0;
+let plane = {
+  x: 0, y: 0, width: 0, height: 0,
+  gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
+  draw() {
+    if (!imageLoaded) return;
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate(this.rotation); // visual only; collision uses unrotated mask
+    ctx.drawImage(planeImage, -this.width/2, -this.height/2, this.width, this.height);
+    ctx.restore();
+  },
+  flap() { this.velocity = this.lift; },
+  update() {
+    this.velocity += this.gravity;
+    this.y += this.velocity;
+    this.rotation = Math.min(Math.max(this.velocity / (canvas.height * 0.04), -0.4), 0.7);
+    if (this.y + this.height > canvas.height || this.y < 0) setGameOver();
+  }
 };
 
 const obstacles = {
-    list: [], width: 50, gap: 180,
-    spawn() {
-        if (frames % 120 === 0) {
-            const topHeight = Math.floor(Math.random() * (canvas.height - this.gap - 150)) + 75;
-            this.list.push({ x: canvas.width
+  list: [],
+  width: 0,
+  gap: 0,
+  spawnInterval: 110, // frames; tuned after resize
+  spawn() {
+    if (frames % this.spawnInterval === 0) {
+      const minTop = Math.max(50, Math.floor(canvas.height * 0.1));
+      const maxTop = Math.floor(canvas.height - this.gap - canvas.height * 0.25);
+      const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
+      this.list.push({ x: canvas.width, top: topHeight, passed: false });
+    }
+  },
+  update() {
+    for (const o of this.list) {
+      o.x -= gameSpeed;
+      // score when plane passes pillar
+      if (!o.passed && plane.x > o.x + this.width) {
+        o.passed = true;
+        score++;
+        scoreElement.textContent = `SCORE: ${score}`;
+      }
+      // coarse bbox to skip far checks
+      const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height };
+      // Top pillar rect
+      const topRect = { x: o.x, y: 0, width: this.width, height: o.top };
+      // Bottom pillar rect
+      const bottomRect = { x: o.x, y: o.top + this.gap, width: this.width, height: canvas.height - (o.top + this.gap) };
+
+      if (rectsOverlap(planeRect, topRect) || rectsOverlap(planeRect, bottomRect)) {
+        // pixel-perfect against top and/or bottom rectangles
+        if (pixelPerfectAgainstRect(planeRect, planeMask, topRect) ||
+            pixelPerfectAgainstRect(planeRect, planeMask, bottomRect)) {
+          setGameOver();
+        }
+      }
+    }
+    // remove off-screen pillars
+    this.list = this.list.filter(o => o.x + this.width > 0);
+  },
+  draw() {
+    for (const o of this.list) {
+      ctx.fillStyle = '#556B2F';
+      ctx.fillRect(o.x, 0, this.width, o.top);
+      ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - o.top - this.gap);
+    }
+  }
+};
+
+/* -------- Utility / Collision -------- */
+function createMask(image) {
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = image.width;
+  offCanvas.height = image.height;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.imageSmoothingEnabled = false;
+  offCtx.drawImage(image, 0, 0);
+  const data = offCtx.getImageData(0, 0, image.width, image.height).data;
+  const mask = new Array(image.width * image.height);
+  let m = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    mask[m++] = data[i + 3] > 0; // alpha > 0
+  }
+  return mask;
+}
+
+function rectsOverlap(a, b) {
+  return !(a.x + a.width <= b.x ||
+           a.x >= b.x + b.width ||
+           a.y + a.height <= b.y ||
+           a.y >= b.y + b.height);
+}
+
+/* Pixel-perfect between the plane's opaque pixels and an opaque axis-aligned rectangle (pillar). */
+function pixelPerfectAgainstRect(planeRect, planeMask, rect) {
+  if (!rectsOverlap(planeRect, rect)) return false;
+
+  // Overlap region in world coords
+  const startX = Math.max(planeRect.x, rect.x);
+  const startY = Math.max(planeRect.y, rect.y);
+  const endX = Math.min(planeRect.x + planeRect.width, rect.x + rect.width);
+  const endY = Math.min(planeRect.y + planeRect.height, rect.y + rect.height);
+
+  // Map world coords -> plane image pixel coords
+  const sx = planeImage.width / planeRect.width;
+  const sy = planeImage.height / planeRect.height;
+
+  for (let y = startY; y < endY; y++) {
+    const ay = Math.floor((y - planeRect.y) * sy);
+    if (ay < 0 || ay >= planeImage.height) continue;
+
+    for (let x = startX; x < endX; x++) {
+      const ax = Math.floor((x - planeRect.x) * sx);
+      if (ax < 0 || ax >= planeImage.width) continue;
+
+      if (planeMask[ay * planeImage.width + ax]) {
+        // This world pixel is opaque plane pixel and lies within rect -> collision
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* -------- Background -------- */
+function createCityBackground() {
+  const bgCanvas = document.createElement('canvas');
+  bgCanvas.width = canvas.width;
+  bgCanvas.height = canvas.height;
+  const bgCtx = bgCanvas.getContext('2d');
+  bgCtx.imageSmoothingEnabled = false;
+
+  // sky gradient
+  const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
+  gradient.addColorStop(0, '#4a7db9');
+  gradient.addColorStop(0.7, '#87CEEB');
+  bgCtx.fillStyle = gradient;
+  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+  // sun
+  bgCtx.fillStyle = '#ffdd00';
+  const sunR = Math.max(20, Math.floor(bgCanvas.width * 0.06));
+  bgCtx.beginPath();
+  bgCtx.arc(Math.floor(bgCanvas.width * 0.8), Math.floor(bgCanvas.height * 0.14), sunR, 0, Math.PI * 2);
+  bgCtx.fill();
+
+  // distant buildings
+  bgCtx.fillStyle = '#2c3e50';
+  for (let i = 0; i < bgCanvas.width; i += Math.max(30, Math.floor(bgCanvas.width * 0.08))) {
+    const h = Math.floor(bgCanvas.height * (0.10 + Math.random() * 0.15));
+    const w = Math.max(25, Math.floor(bgCanvas.width * 0.07));
+    bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.20) - h, w, h);
+  }
+
+  // mid buildings
+  bgCtx.fillStyle = '#34495e';
+  for (let i = 0; i < bgCanvas.width; i += Math.max(22, Math.floor(bgCanvas.width * 0.06))) {
+    const h = Math.floor(bgCanvas.height * (0.07 + Math.random() * 0.10));
+    const w = Math.max(18, Math.floor(bgCanvas.width * 0.05));
+    bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.13) - h, w, h);
+  }
+
+  // water/ground strip
+  bgCtx.fillStyle = '#3498db';
+  bgCtx.fillRect(0, bgCanvas.height - Math.floor(bgCanvas.height * 0.035), bgCanvas.width, Math.floor(bgCanvas.height * 0.035));
+
+  return bgCanvas;
+}
+
+/* -------- Resize / Scale -------- */
+function sizeEverything() {
+  // Fill the viewport
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Scale gameplay to screen
+  const baseW = canvas.width;
+  const baseH = canvas.height;
+
+  // Game speed proportional to width; tuned for phone feel
+  gameSpeed = Math.max(2.2, baseW * 0.0045);
+
+  // Plane size ~ 12% of screen width
+  plane.width = Math.max(40, Math.floor(baseW * 0.12));
+  plane.height = Math.max(24, Math.floor(plane.width * planeAspect));
+  // Place plane at ~17% from left, vertically centered initially
+  if (!gameStarted) {
+    plane.x = Math.floor(baseW * 0.17);
+    plane.y = Math.floor(baseH * 0.45);
+  }
+
+  // Physics scale with height
+  plane.gravity = Math.max(0.15, baseH * 0.00045);
+  plane.lift = -Math.max(4, Math.floor(baseH * 0.012));
+
+  // Obstacles scale
+  obstacles.width = Math.max(40, Math.floor(baseW * 0.12));
+  obstacles.gap = Math.max(120, Math.floor(baseH * 0.28));
+  // Spawn interval scaled to keep distance reasonable
+  obstacles.spawnInterval = Math.max(90, Math.floor( (obstacles.width + baseW * 0.25) / gameSpeed ));
+
+  // Regenerate background to new size
+  cityBackground = createCityBackground();
+
+  // Redraw idle screen
+  drawIdle();
+}
+
+function drawIdle() {
+  ctx.drawImage(cityBackground, 0, 0);
+  if (imageLoaded) plane.draw();
+}
+
+/* -------- Game Flow -------- */
+function setGameOver() {
+  if (gameOver) return;
+  gameOver = true;
+  startScreenTitle.textContent = 'MISSION FAILED';
+  startScreen.querySelector('p').textContent = `FINAL SCORE: ${score}. Tap to try again!`;
+  startScreen.style.display = 'flex';
+  startButton.textContent = 'TRY AGAIN';
+
+  try {
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.game.setScore({ score });
+    }
+  } catch (_) {}
+}
+
+function resetGame() {
+  obstacles.list = [];
+  gameOver = false;
+  score = 0;
+  frames = 0;
+  scoreElement.textContent = `SCORE: ${score}`;
+  startScreen.style.display = 'none';
+
+  // Reset plane
+  plane.velocity = 0;
+  plane.rotation = 0;
+  plane.x = Math.floor(canvas.width * 0.17);
+  plane.y = Math.floor(canvas.height * 0.45);
+
+  if (!gameStarted) {
+    gameStarted = true;
+    loop();
+  }
+}
+
+/* Main loop */
+function loop() {
+  if (gameOver) return;
+
+  ctx.drawImage(cityBackground, 0, 0);
+
+  obstacles.spawn();
+  obstacles.update();
+  obstacles.draw();
+
+  plane.update();
+  plane.draw();
+
+  frames++;
+  requestAnimationFrame(loop);
+}
+
+/* -------- Input: tap anywhere to start and flap -------- */
+function handleInputStart() {
+  if (!imageLoaded) return; // wait for plane
+  if (!gameStarted || startScreen.style.display !== 'none') {
+    resetGame();
+  } else if (!gameOver) {
+    plane.flap();
+  }
+}
+document.addEventListener('click', handleInputStart);
+document.addEventListener('touchstart', (e) => {
+  e.preventDefault(); // avoid double events/scroll
+  handleInputStart();
+}, { passive: false });
+startButton.addEventListener('click', handleInputStart);
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') handleInputStart();
+});
+
+/* -------- Init & Resize -------- */
+window.addEventListener('resize', () => {
+  sizeEverything();
+});
+window.addEventListener('orientationchange', () => {
+  // Give mobile browsers a moment to update innerWidth/innerHeight
+  setTimeout(sizeEverything, 250);
+});
+
+/* First layout */
+sizeEverything();
+</script>
+</body>
