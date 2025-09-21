@@ -320,8 +320,8 @@ function createCityBackground() {
 /* -------- Resize / Scale -------- */
 function sizeEverything() {
   // Fill the viewport
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth - 20;
+  canvas.height = window.innerHeight - 20;
 
   // Scale gameplay to screen
   const baseW = canvas.width;
@@ -394,8 +394,8 @@ function resetGame() {
 
   if (!gameStarted) {
     gameStarted = true;
-    loop();
   }
+  loop();
 }
 
 /* Main loop */
