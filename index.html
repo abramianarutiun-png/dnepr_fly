@@ -184,7 +184,7 @@ const obstacles = {
         o.passed = true;
         score++;
         scoreElement.textContent = `CЧЕТ: ${score}`;
-        gameSpeed = Math.min(gameSpeed + 0.1, 10.0); // Increase speed, cap 10.0
+        gameSpeed = Math.min(gameSpeed + 0.1, 1000.0); // Increase speed, cap 10.0
         obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed));
       }
       // coarse bbox to skip far checks
