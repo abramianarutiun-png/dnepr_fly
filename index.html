@@ -150,21 +150,22 @@ let imageLoaded = false;
 let planeMask = []; // boolean mask (alpha>0) in image pixel space
 let planeAspect = 26/45;
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let jumpBuffer;
-
-fetch("benya-jump.mp3")
-  .then(res => res.arrayBuffer())
-  .then(data => audioCtx.decodeAudioData(data))
-  .then(buffer => jumpBuffer = buffer);
+const poolSize = 3;
+const jumpSounds = Array.from({ length: poolSize }, () => {
+  const a = new Audio("benya-jump.mp3");
+  a.preload = "auto";
+  a.volume = 0.7;
+  return a;
+});
+let index = 0;
 
 function playJumpSound() {
-  if (!jumpBuffer) return;
-  const source = audioCtx.createBufferSource();
-  source.buffer = jumpBuffer;
-  source.connect(audioCtx.destination);
-  source.start(0);
+  const snd = jumpSounds[index];
+  snd.currentTime = 0;
+  snd.play().catch(() => {});
+  index = (index + 1) % poolSize;
 }
+
 
 planeImage.onload = () => {
   imageLoaded = true;
