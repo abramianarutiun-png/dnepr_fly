@@ -111,6 +111,38 @@
   </div>
 
 <script>
+// ##########################
+// Star of David Drawing Function
+// ##########################
+function drawStarOfDavid(ctx, x, y, size) {
+  const r = size / 2;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = '#ffd700'; // Gold color
+  ctx.lineWidth = Math.max(2, size / 10);
+
+  // First triangle (pointing up)
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const angle = Math.PI / 2 + i * (2 * Math.PI / 3);
+    ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Second triangle (pointing down)
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const angle = -Math.PI / 2 + i * (2 * Math.PI / 3);
+    ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.restore();
+}
+// ##########################
+
 const planeImage = new Image();
 planeImage.src = 'benya-letun.png';
 
@@ -163,6 +195,9 @@ let plane = {
   }
 };
 
+// ##########################
+// MODIFIED obstacles.draw() TO ADD BUILDING + STAR OF DAVID
+// ##########################
 const obstacles = {
   list: [],
   width: 0,
@@ -207,12 +242,62 @@ const obstacles = {
   },
   draw() {
     for (const o of this.list) {
-      ctx.fillStyle = '#556B2F';
+      // Top building
+      ctx.fillStyle = "#ccc"; // Light gray for building
       ctx.fillRect(o.x, 0, this.width, o.top);
-      ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - o.top - this.gap);
+
+      // Optional: add simple windows to top building
+      ctx.fillStyle = "#99c";
+      const winRows = Math.max(2, Math.floor(o.top / 24));
+      const winCols = Math.max(2, Math.floor(this.width / 18));
+      for (let r = 0; r < winRows; r++) {
+        for (let c = 0; c < winCols; c++) {
+          ctx.fillRect(
+            o.x + 5 + c * ((this.width - 10) / winCols),
+            5 + r * ((o.top - 10) / winRows),
+            8, 12
+          );
+        }
+      }
+
+      // Draw Star of David on top building
+      drawStarOfDavid(
+        ctx,
+        o.x + this.width / 2,
+        o.top / 2,
+        Math.min(this.width, 32)
+      );
+
+      // Bottom building
+      ctx.fillStyle = "#ccc";
+      ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - (o.top + this.gap));
+
+      // Optional: add simple windows to bottom building
+      ctx.fillStyle = "#99c";
+      const bottomHeight = canvas.height - (o.top + this.gap);
+      const winRowsB = Math.max(2, Math.floor(bottomHeight / 24));
+      const winColsB = Math.max(2, Math.floor(this.width / 18));
+      for (let r = 0; r < winRowsB; r++) {
+        for (let c = 0; c < winColsB; c++) {
+          ctx.fillRect(
+            o.x + 5 + c * ((this.width - 10) / winColsB),
+            o.top + this.gap + 5 + r * ((bottomHeight - 10) / winRowsB),
+            8, 12
+          );
+        }
+      }
+
+      // Draw Star of David on bottom building
+      drawStarOfDavid(
+        ctx,
+        o.x + this.width / 2,
+        o.top + this.gap + bottomHeight / 2,
+        Math.min(this.width, 32)
+      );
     }
   }
 };
+// ##########################
 
 /* -------- Utility / Collision -------- */
 function createMask(image) {
