@@ -149,6 +149,9 @@ planeImage.src = 'benya-letun.png';
 let imageLoaded = false;
 let planeMask = []; // boolean mask (alpha>0) in image pixel space
 let planeAspect = 26/45;
+const jumpSound = new Audio('benya-jump.mp3');
+jumpSound.preload = 'auto';  
+  
 
 planeImage.onload = () => {
   imageLoaded = true;
@@ -186,7 +189,12 @@ let plane = {
     ctx.drawImage(planeImage, -this.width/2, -this.height/2, this.width, this.height);
     ctx.restore();
   },
-  flap() { this.velocity = this.lift; },
+  flap() { this.velocity = this.lift;
+          try {
+    jumpSound.currentTime = 0; // rewind if called rapidly
+    jumpSound.play();
+  } catch (e) {} // fail silently if not allowed
+},
   update() {
     this.velocity += this.gravity;
     this.y += this.velocity;
