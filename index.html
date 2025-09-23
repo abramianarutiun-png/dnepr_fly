@@ -150,6 +150,7 @@ let imageLoaded = false;
 let planeMask = []; // boolean mask (alpha>0) in image pixel space
 let planeAspect = 26/45;
 
+// --- Jump sound pool ---
 const poolSize = 3;
 const jumpSounds = Array.from({ length: poolSize }, () => {
   const a = new Audio("benya-jump.mp3");
@@ -158,13 +159,23 @@ const jumpSounds = Array.from({ length: poolSize }, () => {
   return a;
 });
 let index = 0;
+let lastJump = 0;
+let playQueued = false;
+
+function queueJumpSound() {
+  const now = performance.now();
+  if (now - lastJump < 120) return; // throttle: 120ms cooldown
+  lastJump = now;
+  playQueued = true;
+}
 
 function playJumpSound() {
   const snd = jumpSounds[index];
   snd.currentTime = 0;
-  snd.play().catch(() => {});
+  snd.play().catch(()=>{});
   index = (index + 1) % poolSize;
 }
+
 
 
 planeImage.onload = () => {
@@ -205,7 +216,7 @@ let plane = {
   },
   flap() { this.velocity = this.lift;
           try {
-    playJumpSound();
+    queueJumpSound();
   } catch (e) {} // fail silently if not allowed
 },
   update() {
