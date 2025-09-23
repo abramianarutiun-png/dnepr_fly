@@ -151,6 +151,12 @@ let planeMask = []; // boolean mask (alpha>0) in image pixel space
 let planeAspect = 26/45;
 const jumpSound = new Audio('benya-jump.mp3');
 jumpSound.preload = 'auto';  
+
+  function playJumpSound() {
+  const snd = jumpSound.cloneNode();
+  snd.volume = 0.7;
+  snd.play();
+}
   
 
 planeImage.onload = () => {
@@ -191,8 +197,7 @@ let plane = {
   },
   flap() { this.velocity = this.lift;
           try {
-    jumpSound.currentTime = 0; // rewind if called rapidly
-    jumpSound.play();
+    playJumpSound();
   } catch (e) {} // fail silently if not allowed
 },
   update() {
