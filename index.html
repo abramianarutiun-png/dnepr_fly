@@ -181,7 +181,8 @@ function assetLoaded() {
     }
     imageLoaded = true;
     sizeEverything();
-    startButton.style.display = 'block';
+    startScreenP.textContent = `Вы выбрали: ${characterConfigs[selectedCharacter].name}. Нажмите на экран чтобы полетать!`;
+    startButton.style.display = 'none';
 }
 }
 // ##########################
@@ -334,8 +335,8 @@ function drawIdle() {
   if (imageLoaded) plane.draw();
 }
 /* Game Flow */
-function setGameOver() { if (gameOver) return; gameOver = true; const config = characterConfigs[selectedCharacter]; startScreenTitle.textContent = config.gameOverText; startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`; startButton.textContent = 'НАЧАТЬ ЗАНОВО'; startButton.style.display = 'block'; charSelectionContainer.style.display = 'none'; startScreen.style.display = 'flex'; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.game.setScore({ score }); } } catch (_) {} }
-function resetGame() { obstacles.list = []; gameOver = false; score = 0; frames = 0; scoreElement.textContent = `СЧЕТ: ${score}`; startScreen.style.display = 'none'; plane.velocity = 0; plane.rotation = 0; plane.y = Math.floor(canvas.height * 0.45); gameSpeed = Math.max(2.2, canvas.width * 0.0045); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); if (!gameStarted) { gameStarted = true; } if (window.Telegram && window.Telegram.WebApp) { Telegram.WebApp.requestFullscreen(); } loop(); }
+function setGameOver() { if (gameOver) return; gameOver = true; const config = characterConfigs[selectedCharacter]; startScreenTitle.textContent = config.gameOverText; startScreenP.textContent = `СЧЕТ: ${score}. Нажмите на экран чтобы начать заново`; startButton.style.display = 'none'; charSelectionContainer.style.display = 'none'; startScreen.style.display = 'flex'; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.game.setScore({ score }); } } catch (_) {} }
+function resetGame() { obstacles.list = []; gameOver = false; score = 0; frames = 0; scoreElement.textContent = `СЧЕТ: ${score}`; startScreen.style.display = 'none'; plane.velocity = 0; plane.rotation = 0; plane.y = Math.floor(canvas.height * 0.45); gameSpeed = Math.max(2.2, canvas.width * 0.0045); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); if (!gameStarted) { gameStarted = true; } if (window.Telegram && window.Telegram.WebApp) { Telegram.WebApp.expand(); } loop(); }
 /* Main loop */
 function loop() { if (gameOver) return; ctx.drawImage(cityBackground, 0, 0); obstacles.spawn(); obstacles.update(); obstacles.draw(); plane.update(); plane.draw(); frames++; requestAnimationFrame(loop); }
 // ##########################
@@ -343,8 +344,16 @@ function loop() { if (gameOver) return; ctx.drawImage(cityBackground, 0, 0); obs
 // Now accounts for loading multiple assets before starting.
 // ##########################
 function handleGameInput() {
+  if (!gameStarted && selectedCharacter && imageLoaded) {
+    resetGame();
+    return;
+  }
   if (gameStarted && !gameOver) {
     plane.flap();
+  }
+  if (gameOver) {
+    resetGame();
+    return;
   }
 }
 function selectCharacter(charKey) {
@@ -384,15 +393,6 @@ charButtons.forEach(button => {
         const charKey = button.dataset.char;
         selectCharacter(charKey);
     });
-});
-startButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    // Start the game only if a character is chosen AND all assets are loaded
-    if (selectedCharacter && imageLoaded) {
-        resetGame();
-    } else {
-        console.log('Not ready yet');
-    }
 });
 document.addEventListener('click', handleGameInput);
 document.addEventListener('touchstart', (e) => {
