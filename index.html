@@ -34,7 +34,7 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
     border-radius: 10px;
     overflow: hidden;
-    touch-action: none; 
+    touch-action: none;  
   }
   #gameCanvas {
     display: block;
@@ -67,6 +67,8 @@
     color: white;
     z-index: 10;
     text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
   }
   .start-screen h1 {
     font-size: 40px;
@@ -97,6 +99,38 @@
     color: #0057b8;
     transform: scale(1.05);
   }
+  .character-selection {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  .char-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffd700;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Courier New', monospace;
+    width: 100px;
+  }
+  .char-button:hover, .char-button.selected {
+    background-color: #ffd700;
+    color: #0057b8;
+    transform: scale(1.05);
+  }
+  .char-button img {
+    width: 60px;
+    height: auto;
+    image-rendering: pixelated;
+  }
 </style>
 </head>
 <body>
@@ -105,59 +139,136 @@
     <canvas id="gameCanvas"></canvas>
     <div class="start-screen">
       <h1>DNEPR FLY</h1>
-      <p>Нажми чтобы полетать над Столицей Мира!</p>
-      <button class="start-button">НАЧАТЬ ПОЛЕТ</button>
+      <p id="start-screen-p">Выберите персонажа:</p>
+      <div class="character-selection">
+        <button class="char-button" data-char="benya">
+          <img src="benya-letun.png" alt="Benya">
+          <span>Беня</span>
+        </button>
+        <button class="char-button" data-char="moskal">
+          <img src="moskal-letun.png" alt="Moskal">
+          <span>Москаль</span>
+        </button>
+        <button class="char-button" data-char="porox">
+          <img src="porox-letun.png" alt="Porox">
+          <span>Порох</span>
+        </button>
+      </div>
+      <button class="start-button" style="display:none;">НАЧАТЬ ПОЛЕТ</button>
     </div>
   </div>
 
 <script>
 // ##########################
-// Star of David Drawing Function
+// NEW: Asset Loading
+// We create image objects here and track their loading status.
 // ##########################
-function drawStarOfDavid(ctx, x, y, size) {
-  const r = size / 2;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = '#ffd700'; // Gold color
-  ctx.lineWidth = Math.max(2, size / 10);
-
-  // First triangle (pointing up)
-  ctx.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const angle = Math.PI / 2 + i * (2 * Math.PI / 3);
-    ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
-  }
-  ctx.closePath();
-  ctx.stroke();
-
-  // Second triangle (pointing down)
-  ctx.beginPath();
-  for (let i = 0; i < 3; i++) {
-    const angle = -Math.PI / 2 + i * (2 * Math.PI / 3);
-    ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
-  }
-  ctx.closePath();
-  ctx.stroke();
-
-  ctx.restore();
-}
-// ##########################
+const roshenLogoImage = new Image();
+roshenLogoImage.src = 'roshen-logo.png'; // Make sure this file exists
 
 const planeImage = new Image();
-planeImage.src = 'benya-letun.png';
+let assetsToLoad = 1; // Starts at 1 for the plane image
+let assetsLoaded = 0;
 
-let imageLoaded = false;
-let planeMask = []; // boolean mask (alpha>0) in image pixel space
-let planeAspect = 26/45;
+function assetLoaded() {
+    assetsLoaded++;
+    // When all assets are loaded, enable the game
+    if (assetsLoaded >= assetsToLoad) {
+        imageLoaded = true;
+        planeMask = createMask(planeImage);
+        planeAspect = planeImage.height / planeImage.width;
+        sizeEverything();
+    }
+}
+roshenLogoImage.onload = assetLoaded;
+planeImage.onload = assetLoaded;
 
 
-
-planeImage.onload = () => {
-  imageLoaded = true;
-  planeMask = createMask(planeImage);
-  planeAspect = planeImage.height / planeImage.width;
-  sizeEverything();
+// ##########################
+// MODIFIED: Character Configuration Object
+// Added the new 'porox' character with unique settings.
+// ##########################
+const characterConfigs = {
+    'benya': {
+        name: 'Беня',
+        imageSrc: 'benya-letun.png',
+        gravityMultiplier: 1.0,
+        liftMultiplier: 1.0,
+        drawObstacle: drawJewishBuilding,
+        gameOverText: 'ОЙ, попал в еврейское здание!'
+    },
+    'moskal': {
+        name: 'Москаль',
+        imageSrc: 'moskal-letun.png', 
+        gravityMultiplier: 0.9,
+        liftMultiplier: 0.95,
+        drawObstacle: drawKremlinTower,
+        gameOverText: 'ОЙ, попал в кремлевскую башню!'
+    },
+    // NEW: Porox character config
+    'porox': {
+        name: 'Порох',
+        imageSrc: 'porox-letun.png', // Create this image file
+        gravityMultiplier: 1.1, // Heavier, falls faster
+        liftMultiplier: 1.1,   // Stronger flap
+        drawObstacle: drawRoshenPillar,
+        gameOverText: 'ОЙ, врезался в Рошен!'
+    }
 };
+let selectedCharacter = null;
+
+// ##########################
+// Drawing Helper Functions (No changes here)
+// ##########################
+function drawStarOfDavid(ctx, x, y, size) { /* ... no change ... */ }
+function drawRedStar(ctx, cx, cy, outerRadius) { /* ... no change ... */ }
+
+
+// ##########################
+// MODIFIED: Obstacle Drawing Functions
+// ##########################
+function drawJewishBuilding(ctx, o, width, gap) { /* ... no change ... */ }
+function drawKremlinTower(ctx, o, width, gap) { /* ... no change ... */ }
+
+// NEW: Obstacle drawing function for the 'porox' character.
+// This function draws a simple pillar and renders the Roshen logo on it.
+function drawRoshenPillar(ctx, o, width, gap) {
+    const pillarColor = "#7B3F00"; // Chocolate brown color
+
+    // --- Top Pillar ---
+    ctx.fillStyle = pillarColor;
+    ctx.fillRect(o.x, 0, width, o.top);
+    
+    // Calculate logo size, making it 80% of the pillar's width
+    const logoSize = width * 0.8;
+    const logoX = o.x + (width - logoSize) / 2; // Center the logo horizontally
+    const logoY = (o.top - logoSize) / 2;       // Center the logo vertically
+    
+    // Draw the Roshen logo on the top pillar if the image is loaded
+    if (roshenLogoImage.complete) {
+        ctx.drawImage(roshenLogoImage, logoX, logoY, logoSize, logoSize);
+    }
+
+    // --- Bottom Pillar ---
+    const bottomHeight = canvas.height - (o.top + gap);
+    ctx.fillStyle = pillarColor;
+    ctx.fillRect(o.x, o.top + gap, width, bottomHeight);
+
+    // Calculate logo position for the bottom pillar
+    const logoYBottom = o.top + gap + (bottomHeight - logoSize) / 2;
+    
+    // Draw the Roshen logo on the bottom pillar
+    if (roshenLogoImage.complete) {
+        ctx.drawImage(roshenLogoImage, logoX, logoYBottom, logoSize, logoSize);
+    }
+}
+
+// ##########################
+// Setup and Game Logic
+// ##########################
+let imageLoaded = false;
+let planeMask = [];
+let planeAspect = 1.0; // Default aspect ratio
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: true });
@@ -167,278 +278,78 @@ const scoreElement = document.querySelector('.score');
 const startScreen = document.querySelector('.start-screen');
 const startButton = document.querySelector('.start-button');
 const startScreenTitle = startScreen.querySelector('h1');
+const startScreenP = document.getElementById('start-screen-p');
+const charSelectionContainer = document.querySelector('.character-selection');
+const charButtons = document.querySelectorAll('.char-button');
 
-/* -------- Game State -------- */
+/* Game State */
 let gameOver = false;
 let gameStarted = false;
 let score = 0;
 let frames = 0;
 let cityBackground = null;
-
-/* Scaled gameplay params (computed per resize) */
 let gameSpeed = 2.0;
+
+/* Player object */
 let plane = {
   x: 0, y: 0, width: 0, height: 0,
   gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
-  draw() {
-    if (!imageLoaded) return;
-    ctx.save();
-    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-    ctx.rotate(this.rotation); // visual only; collision uses unrotated mask
-    ctx.drawImage(planeImage, -this.width/2, -this.height/2, this.width, this.height);
-    ctx.restore();
-  },
-  flap() { this.velocity = this.lift;
-},
-  update() {
-    this.velocity += this.gravity;
-    this.y += this.velocity;
-    this.rotation = Math.min(Math.max(this.velocity / (canvas.height * 0.04), -0.4), 0.7);
-    if (this.y + this.height > canvas.height || this.y < 0) setGameOver();
-  }
+  draw() { /* ... no change ... */ },
+  flap() { this.velocity = this.lift; },
+  update() { /* ... no change ... */ }
 };
 
-// ##########################
-// MODIFIED obstacles.draw() TO ADD BUILDING + STAR OF DAVID
-// ##########################
+/* Obstacles object */
 const obstacles = {
   list: [],
   width: 0,
   gap: 0,
-  spawnInterval: 110, // frames; tuned after resize
-  spawn() {
-    if (frames % this.spawnInterval === 0) {
-      const minTop = Math.max(50, Math.floor(canvas.height * 0.1));
-      const maxTop = Math.floor(canvas.height - this.gap - canvas.height * 0.25);
-      const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
-      this.list.push({ x: canvas.width, top: topHeight, passed: false });
-    }
-  },
-  update() {
-    for (const o of this.list) {
-      o.x -= gameSpeed;
-      // score when plane passes pillar
-      if (!o.passed && plane.x > o.x + this.width) {
-        o.passed = true;
-        score++;
-        scoreElement.textContent = `CЧЕТ: ${score}`;
-        gameSpeed = Math.min(gameSpeed + 0.1, 1000.0); // Increase speed, cap 10.0
-        obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed));
-      }
-      // coarse bbox to skip far checks
-      const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height };
-      // Top pillar rect
-      const topRect = { x: o.x, y: 0, width: this.width, height: o.top };
-      // Bottom pillar rect
-      const bottomRect = { x: o.x, y: o.top + this.gap, width: this.width, height: canvas.height - (o.top + this.gap) };
-
-      if (rectsOverlap(planeRect, topRect) || rectsOverlap(planeRect, bottomRect)) {
-        // pixel-perfect against top and/or bottom rectangles
-        if (pixelPerfectAgainstRect(planeRect, planeMask, topRect) ||
-            pixelPerfectAgainstRect(planeRect, planeMask, bottomRect)) {
-          setGameOver();
-        }
-      }
-    }
-    // remove off-screen pillars
-    this.list = this.list.filter(o => o.x + this.width > 0);
-  },
+  spawnInterval: 110,
+  spawn() { /* ... no change ... */ },
+  update() { /* ... no change ... */ },
   draw() {
+    if (!selectedCharacter) return;
+    const drawFunc = characterConfigs[selectedCharacter].drawObstacle;
     for (const o of this.list) {
-      // Top building
-      ctx.fillStyle = "#ccc"; // Light gray for building
-      ctx.fillRect(o.x, 0, this.width, o.top);
-
-      // Optional: add simple windows to top building
-      ctx.fillStyle = "#99c";
-      const winRows = Math.max(2, Math.floor(o.top / 24));
-      const winCols = Math.max(2, Math.floor(this.width / 18));
-      for (let r = 0; r < winRows; r++) {
-        for (let c = 0; c < winCols; c++) {
-          ctx.fillRect(
-            o.x + 5 + c * ((this.width - 10) / winCols),
-            5 + r * ((o.top - 10) / winRows),
-            8, 12
-          );
-        }
-      }
-
-      // Draw Star of David on top building
-      drawStarOfDavid(
-        ctx,
-        o.x + this.width / 2,
-        o.top / 2,
-        Math.min(this.width, 32)
-      );
-
-      // Bottom building
-      ctx.fillStyle = "#ccc";
-      ctx.fillRect(o.x, o.top + this.gap, this.width, canvas.height - (o.top + this.gap));
-
-      // Optional: add simple windows to bottom building
-      ctx.fillStyle = "#99c";
-      const bottomHeight = canvas.height - (o.top + this.gap);
-      const winRowsB = Math.max(2, Math.floor(bottomHeight / 24));
-      const winColsB = Math.max(2, Math.floor(this.width / 18));
-      for (let r = 0; r < winRowsB; r++) {
-        for (let c = 0; c < winColsB; c++) {
-          ctx.fillRect(
-            o.x + 5 + c * ((this.width - 10) / winColsB),
-            o.top + this.gap + 5 + r * ((bottomHeight - 10) / winRowsB),
-            8, 12
-          );
-        }
-      }
-
-      // Draw Star of David on bottom building
-      drawStarOfDavid(
-        ctx,
-        o.x + this.width / 2,
-        o.top + this.gap + bottomHeight / 2,
-        Math.min(this.width, 32)
-      );
+        drawFunc(ctx, o, this.width, this.gap);
     }
   }
 };
-// ##########################
 
-/* -------- Utility / Collision -------- */
-function createMask(image) {
-  const offCanvas = document.createElement('canvas');
-  offCanvas.width = image.width;
-  offCanvas.height = image.height;
-  const offCtx = offCanvas.getContext('2d');
-  offCtx.imageSmoothingEnabled = false;
-  offCtx.drawImage(image, 0, 0);
-  const data = offCtx.getImageData(0, 0, image.width, image.height).data;
-  const mask = new Array(image.width * image.height);
-  let m = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    mask[m++] = data[i + 3] > 0; // alpha > 0
-  }
-  return mask;
-}
+/* Utility & Collision */
+function createMask(image) { /* ... no change ... */ }
+function rectsOverlap(a, b) { /* ... no change ... */ }
+function pixelPerfectAgainstRect(planeRect, planeMask, rect) { /* ... no change ... */ }
 
-function rectsOverlap(a, b) {
-  return !(a.x + a.width <= b.x ||
-           a.x >= b.x + b.width ||
-           a.y + a.height <= b.y ||
-           a.y >= b.y + b.height);
-}
+/* Background */
+function createCityBackground() { /* ... no change ... */ }
 
-/* Pixel-perfect between the plane's opaque pixels and an opaque axis-aligned rectangle (pillar). */
-function pixelPerfectAgainstRect(planeRect, planeMask, rect) {
-  if (!rectsOverlap(planeRect, rect)) return false;
-
-  // Overlap region in world coords
-  const startX = Math.max(planeRect.x, rect.x);
-  const startY = Math.max(planeRect.y, rect.y);
-  const endX = Math.min(planeRect.x + planeRect.width, rect.x + rect.width);
-  const endY = Math.min(planeRect.y + planeRect.height, rect.y + rect.height);
-
-  // Map world coords -> plane image pixel coords
-  const sx = planeImage.width / planeRect.width;
-  const sy = planeImage.height / planeRect.height;
-
-  for (let y = startY; y < endY; y++) {
-    const ay = Math.floor((y - planeRect.y) * sy);
-    if (ay < 0 || ay >= planeImage.height) continue;
-
-    for (let x = startX; x < endX; x++) {
-      const ax = Math.floor((x - planeRect.x) * sx);
-      if (ax < 0 || ax >= planeImage.width) continue;
-
-      if (planeMask[ay * planeImage.width + ax]) {
-        // This world pixel is opaque plane pixel and lies within rect -> collision
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/* -------- Background -------- */
-function createCityBackground() {
-  const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = canvas.width;
-  bgCanvas.height = canvas.height;
-  const bgCtx = bgCanvas.getContext('2d');
-  bgCtx.imageSmoothingEnabled = false;
-
-  // sky gradient
-  const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height);
-  gradient.addColorStop(0, '#4a7db9');
-  gradient.addColorStop(0.7, '#87CEEB');
-  bgCtx.fillStyle = gradient;
-  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-  // sun
-  bgCtx.fillStyle = '#ffdd00';
-  const sunR = Math.max(20, Math.floor(bgCanvas.width * 0.06));
-  bgCtx.beginPath();
-  bgCtx.arc(Math.floor(bgCanvas.width * 0.8), Math.floor(bgCanvas.height * 0.14), sunR, 0, Math.PI * 2);
-  bgCtx.fill();
-
-  // distant buildings
-  bgCtx.fillStyle = '#2c3e50';
-  for (let i = 0; i < bgCanvas.width; i += Math.max(30, Math.floor(bgCanvas.width * 0.08))) {
-    const h = Math.floor(bgCanvas.height * (0.10 + Math.random() * 0.15));
-    const w = Math.max(25, Math.floor(bgCanvas.width * 0.07));
-    bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.20) - h, w, h);
-  }
-
-  // mid buildings
-  bgCtx.fillStyle = '#34495e';
-  for (let i = 0; i < bgCanvas.width; i += Math.max(22, Math.floor(bgCanvas.width * 0.06))) {
-    const h = Math.floor(bgCanvas.height * (0.07 + Math.random() * 0.10));
-    const w = Math.max(18, Math.floor(bgCanvas.width * 0.05));
-    bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.13) - h, w, h);
-  }
-
-  // water/ground strip
-  bgCtx.fillStyle = '#3498db';
-  bgCtx.fillRect(0, bgCanvas.height - Math.floor(bgCanvas.height * 0.035), bgCanvas.width, Math.floor(bgCanvas.height * 0.035));
-
-  return bgCanvas;
-}
-
-/* -------- Resize / Scale -------- */
+/* Resize / Scale */
 function sizeEverything() {
-  // Fill the viewport
-  canvas.width = window.innerWidth - 20;
-  canvas.height = window.innerHeight - 20;
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerHeight - 20;
+    const baseW = canvas.width;
+    const baseH = canvas.height;
+    const config = characterConfigs[selectedCharacter || 'benya'];
 
-  // Scale gameplay to screen
-  const baseW = canvas.width;
-  const baseH = canvas.height;
+    gameSpeed = Math.max(2.2, baseW * 0.0045);
+    plane.width = Math.max(40, Math.floor(baseW * 0.15));
+    plane.height = Math.max(24, Math.floor(plane.width * planeAspect));
 
-  // Game speed proportional to width; tuned for phone feel
-  gameSpeed = Math.max(2.2, baseW * 0.0045);
+    if (!gameStarted) {
+        plane.x = Math.floor(baseW * 0.17);
+        plane.y = Math.floor(baseH * 0.45);
+    }
 
-  // Plane size ~ 14% of screen width
-  plane.width = Math.max(40, Math.floor(baseW * 0.15));
-  plane.height = Math.max(24, Math.floor(plane.width * planeAspect));
-  // Place plane at ~17% from left, vertically centered initially
-  if (!gameStarted) {
-    plane.x = Math.floor(baseW * 0.17);
-    plane.y = Math.floor(baseH * 0.45);
-  }
+    plane.gravity = Math.max(0.15, baseH * 0.00045) * config.gravityMultiplier;
+    plane.lift = -Math.max(4, Math.floor(baseH * 0.01)) * config.liftMultiplier;
 
-  // Physics scale with height
-  plane.gravity = Math.max(0.15, baseH * 0.00045);
-  plane.lift = -Math.max(4, Math.floor(baseH * 0.01));
+    obstacles.width = Math.max(50, Math.floor(baseW * 0.14)); // Slightly wider pillars
+    obstacles.gap = Math.max(120, Math.floor(baseH * 0.28));
+    obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + baseW * 0.25) / gameSpeed));
 
-  // Obstacles scale
-  obstacles.width = Math.max(40, Math.floor(baseW * 0.12));
-  obstacles.gap = Math.max(120, Math.floor(baseH * 0.28));
-  // Spawn interval scaled to keep distance reasonable
-  obstacles.spawnInterval = Math.max(90, Math.floor( (obstacles.width + baseW * 0.25) / gameSpeed ));
-
-  // Regenerate background to new size
-  cityBackground = createCityBackground();
-
-  // Redraw idle screen
-  drawIdle();
+    cityBackground = createCityBackground();
+    drawIdle();
 }
 
 function drawIdle() {
@@ -446,91 +357,95 @@ function drawIdle() {
   if (imageLoaded) plane.draw();
 }
 
-/* -------- Game Flow -------- */
-function setGameOver() {
-  if (gameOver) return;
-  gameOver = true;
-  startScreenTitle.textContent = 'ОЙ, попал в еврейское здание!';
-  startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`;
-  startScreen.style.display = 'flex';
-  startButton.textContent = 'НАЧАТЬ ЗАНОВО';
-
-  try {
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.game.setScore({ score });
-    }
-  } catch (_) {}
-}
-
-function resetGame() {
-  obstacles.list = [];
-  gameOver = false;
-  score = 0;
-  frames = 0;
-  scoreElement.textContent = `СЧЕТ: ${score}`;
-  startScreen.style.display = 'none';
-
-  // Reset plane
-  plane.velocity = 0;
-  plane.rotation = 0;
-  plane.x = Math.floor(canvas.width * 0.17);
-  plane.y = Math.floor(canvas.height * 0.45);
-
-  gameSpeed = Math.max(2.2, canvas.width * 0.0045);
-  obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed));
-  if (!gameStarted) {
-    gameStarted = true;
-  }
-  loop();
-}
+/* Game Flow */
+function setGameOver() { /* ... no change ... */ }
+function resetGame() { /* ... no change ... */ }
 
 /* Main loop */
-function loop() {
-  if (gameOver) return;
+function loop() { /* ... no change ... */ }
 
-  ctx.drawImage(cityBackground, 0, 0);
-
-  obstacles.spawn();
-  obstacles.update();
-  obstacles.draw();
-
-  plane.update();
-  plane.draw();
-
-  frames++;
-  requestAnimationFrame(loop);
-}
-
-/* -------- Input: tap anywhere to start and flap -------- */
-function handleInputStart() {
-  if (!imageLoaded) return; // wait for plane
-  if (!gameStarted || startScreen.style.display !== 'none') {
-    resetGame();
-  } else if (!gameOver) {
+// ##########################
+// MODIFIED: Input Handling
+// Now accounts for loading multiple assets before starting.
+// ##########################
+function handleGameInput() {
+  if (gameStarted && !gameOver) {
     plane.flap();
   }
 }
-document.addEventListener('click', handleInputStart);
-document.addEventListener('touchstart', (e) => {
-  e.preventDefault(); // avoid double events/scroll
-  handleInputStart();
-}, { passive: false });
-startButton.addEventListener('click', handleInputStart);
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') handleInputStart();
+
+function selectCharacter(charKey) {
+    if (!characterConfigs[charKey]) return;
+    
+    selectedCharacter = charKey;
+    const config = characterConfigs[selectedCharacter];
+
+    charButtons.forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.char-button[data-char="${charKey}"]`).classList.add('selected');
+
+    charSelectionContainer.style.display = 'none';
+    startScreenP.textContent = `Вы выбрали: ${config.name}. Нажми чтобы полетать!`;
+    startButton.style.display = 'block';
+
+    // Reset asset counters for the new character image
+    assetsToLoad = 2; // Now we need plane image AND logo image
+    assetsLoaded = 0;
+    
+    // Trigger loading for both assets. The onload events will call assetLoaded().
+    roshenLogoImage.src = 'roshen-logo.png'; // Re-trigger just in case
+    planeImage.src = config.imageSrc;
+}
+
+charButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        const charKey = button.dataset.char;
+        selectCharacter(charKey);
+    });
 });
 
-/* -------- Init & Resize -------- */
-window.addEventListener('resize', () => {
-  sizeEverything();
+startButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Start the game only if a character is chosen AND all assets are loaded
+    if (selectedCharacter && imageLoaded) {
+        resetGame();
+    }
 });
+
+document.addEventListener('click', handleGameInput);
+document.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleGameInput();
+}, { passive: false });
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') handleGameInput();
+});
+
+/* Init & Resize */
+window.addEventListener('resize', sizeEverything);
 window.addEventListener('orientationchange', () => {
-  // Give mobile browsers a moment to update innerWidth/innerHeight
   setTimeout(sizeEverything, 250);
 });
 
 /* First layout */
 sizeEverything();
+
+// To fill in the function bodies that had "no change"
+function drawStarOfDavid(ctx, x, y, size) { const r = size / 2; ctx.save(); ctx.translate(x, y); ctx.strokeStyle = '#ffd700'; ctx.lineWidth = Math.max(2, size / 10); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = -Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.restore(); }
+function drawRedStar(ctx, cx, cy, outerRadius) { const spikes = 5; const innerRadius = outerRadius / 2; let rot = Math.PI / 2 * 3; let x = cx; let y = cy; let step = Math.PI / spikes; ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius); for (let i = 0; i < spikes; i++) { x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step; x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step; } ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.lineWidth = 2; ctx.strokeStyle = '#8B0000'; ctx.stroke(); ctx.fillStyle = '#FF0000'; ctx.fill(); ctx.restore(); }
+function drawJewishBuilding(ctx, o, width, gap) { ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#99c"; const winRows = Math.max(2, Math.floor(o.top / 24)); const winCols = Math.max(2, Math.floor(width / 18)); for (let r = 0; r < winRows; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), 5 + r * ((o.top - 10) / winRows), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top / 2, Math.min(width, 32)); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#99c"; const winRowsB = Math.max(2, Math.floor(bottomHeight / 24)); for (let r = 0; r < winRowsB; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), o.top + gap + 5 + r * ((bottomHeight - 10) / winRowsB), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top + gap + bottomHeight / 2, Math.min(width, 32)); }
+function drawKremlinTower(ctx, o, width, gap) { ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top - 10, 8, 10); } drawRedStar(ctx, o.x + width / 2, 30, 18); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top + gap, 8, 10); } drawRedStar(ctx, o.x + width / 2, o.top + gap + bottomHeight - 30, 18); }
+plane.draw = function() { if (!imageLoaded) return; ctx.save(); ctx.translate(this.x + this.width / 2, this.y + this.height / 2); ctx.rotate(this.rotation); ctx.drawImage(planeImage, -this.width / 2, -this.height / 2, this.width, this.height); ctx.restore(); };
+plane.update = function() { this.velocity += this.gravity; this.y += this.velocity; this.rotation = Math.min(Math.max(this.velocity / (canvas.height * 0.04), -0.4), 0.7); if (this.y + this.height > canvas.height || this.y < 0) setGameOver(); };
+obstacles.spawn = function() { if (frames % this.spawnInterval === 0) { const minTop = Math.max(50, Math.floor(canvas.height * 0.1)); const maxTop = Math.floor(canvas.height - this.gap - canvas.height * 0.25); const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop; this.list.push({ x: canvas.width, top: topHeight, passed: false }); } };
+obstacles.update = function() { for (const o of this.list) { o.x -= gameSpeed; if (!o.passed && plane.x > o.x + this.width) { o.passed = true; score++; scoreElement.textContent = `CЧЕТ: ${score}`; gameSpeed = Math.min(gameSpeed + 0.1, 1000.0); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); } const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height }; const topRect = { x: o.x, y: 0, width: this.width, height: o.top }; const bottomRect = { x: o.x, y: o.top + this.gap, width: this.width, height: canvas.height - (o.top + this.gap) }; if (rectsOverlap(planeRect, topRect) || rectsOverlap(planeRect, bottomRect)) { if (pixelPerfectAgainstRect(planeRect, planeMask, topRect) || pixelPerfectAgainstRect(planeRect, planeMask, bottomRect)) { setGameOver(); } } } this.list = this.list.filter(o => o.x + this.width > 0); };
+function createMask(image) { const offCanvas = document.createElement('canvas'); offCanvas.width = image.width; offCanvas.height = image.height; const offCtx = offCanvas.getContext('2d'); offCtx.imageSmoothingEnabled = false; offCtx.drawImage(image, 0, 0); const data = offCtx.getImageData(0, 0, image.width, image.height).data; const mask = new Array(image.width * image.height); let m = 0; for (let i = 0; i < data.length; i += 4) { mask[m++] = data[i + 3] > 0; } return mask; }
+function rectsOverlap(a, b) { return !(a.x + a.width <= b.x || a.x >= b.x + b.width || a.y + a.height <= b.y || a.y >= b.y + b.height); }
+function pixelPerfectAgainstRect(planeRect, planeMask, rect) { if (!rectsOverlap(planeRect, rect)) return false; const startX = Math.max(planeRect.x, rect.x); const startY = Math.max(planeRect.y, rect.y); const endX = Math.min(planeRect.x + planeRect.width, rect.x + rect.width); const endY = Math.min(planeRect.y + planeRect.height, rect.y + rect.height); const sx = planeImage.width / planeRect.width; const sy = planeImage.height / planeRect.height; for (let y = startY; y < endY; y++) { const ay = Math.floor((y - planeRect.y) * sy); if (ay < 0 || ay >= planeImage.height) continue; for (let x = startX; x < endX; x++) { const ax = Math.floor((x - planeRect.x) * sx); if (ax < 0 || ax >= planeImage.width) continue; if (planeMask[ay * planeImage.width + ax]) { return true; } } } return false; }
+function createCityBackground() { const bgCanvas = document.createElement('canvas'); bgCanvas.width = canvas.width; bgCanvas.height = canvas.height; const bgCtx = bgCanvas.getContext('2d'); bgCtx.imageSmoothingEnabled = false; const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height); gradient.addColorStop(0, '#4a7db9'); gradient.addColorStop(0.7, '#87CEEB'); bgCtx.fillStyle = gradient; bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height); bgCtx.fillStyle = '#ffdd00'; const sunR = Math.max(20, Math.floor(bgCanvas.width * 0.06)); bgCtx.beginPath(); bgCtx.arc(Math.floor(bgCanvas.width * 0.8), Math.floor(bgCanvas.height * 0.14), sunR, 0, Math.PI * 2); bgCtx.fill(); bgCtx.fillStyle = '#2c3e50'; for (let i = 0; i < bgCanvas.width; i += Math.max(30, Math.floor(bgCanvas.width * 0.08))) { const h = Math.floor(bgCanvas.height * (0.10 + Math.random() * 0.15)); const w = Math.max(25, Math.floor(bgCanvas.width * 0.07)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.20) - h, w, h); } bgCtx.fillStyle = '#34495e'; for (let i = 0; i < bgCanvas.width; i += Math.max(22, Math.floor(bgCanvas.width * 0.06))) { const h = Math.floor(bgCanvas.height * (0.07 + Math.random() * 0.10)); const w = Math.max(18, Math.floor(bgCanvas.width * 0.05)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.13) - h, w, h); } bgCtx.fillStyle = '#3498db'; bgCtx.fillRect(0, bgCanvas.height - Math.floor(bgCanvas.height * 0.035), bgCanvas.width, Math.floor(bgCanvas.height * 0.035)); return bgCanvas; }
+function setGameOver() { if (gameOver) return; gameOver = true; const config = characterConfigs[selectedCharacter]; startScreenTitle.textContent = config.gameOverText; startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`; startButton.textContent = 'НАЧАТЬ ЗАНОВО'; startButton.style.display = 'block'; charSelectionContainer.style.display = 'none'; startScreen.style.display = 'flex'; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.game.setScore({ score }); } } catch (_) {} }
+function resetGame() { obstacles.list = []; gameOver = false; score = 0; frames = 0; scoreElement.textContent = `СЧЕТ: ${score}`; startScreen.style.display = 'none'; plane.velocity = 0; plane.rotation = 0; plane.y = Math.floor(canvas.height * 0.45); gameSpeed = Math.max(2.2, canvas.width * 0.0045); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); if (!gameStarted) { gameStarted = true; } loop(); }
+function loop() { if (gameOver) return; ctx.drawImage(cityBackground, 0, 0); obstacles.spawn(); obstacles.update(); obstacles.draw(); plane.update(); plane.draw(); frames++; requestAnimationFrame(loop); }
 </script>
 </body>
+</html>
