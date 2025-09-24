@@ -160,19 +160,17 @@
 
 <script>
 // ##########################
-// NEW: Asset Loading
-// We create image objects here and track their loading status.
+// Asset Loading
 // ##########################
 const roshenLogoImage = new Image();
-roshenLogoImage.src = 'roshen-logo.png'; // Make sure this file exists
-
 const planeImage = new Image();
-let assetsToLoad = 2; // Starts at 1 for the plane image
+
+let assetsToLoad = 2; // we need logo + plane
 let assetsLoaded = 0;
+let imageLoaded = false;
 
 function assetLoaded() {
     assetsLoaded++;
-    // When all assets are loaded, enable the game
     if (assetsLoaded >= assetsToLoad) {
         imageLoaded = true;
         planeMask = createMask(planeImage);
@@ -180,9 +178,13 @@ function assetLoaded() {
         sizeEverything();
     }
 }
+
 roshenLogoImage.onload = assetLoaded;
 planeImage.onload = assetLoaded;
 
+// trigger logo loading immediately
+roshenLogoImage.src = 'roshen-logo.png';
+// planeImage.src will be set later in selectCharacter()
 
 // ##########################
 // MODIFIED: Character Configuration Object
