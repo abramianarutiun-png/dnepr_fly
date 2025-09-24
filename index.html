@@ -180,8 +180,8 @@ function assetLoaded() {
         sizeEverything();
     }
 }
-roshenLogoImage.onload = assetLoaded;
-planeImage.onload = assetLoaded;
+if (roshenLogoImage.complete) assetLoaded();
+if (planeImage.complete) assetLoaded();
 
 
 // ##########################
