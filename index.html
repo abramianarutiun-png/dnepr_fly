@@ -181,6 +181,7 @@ function assetLoaded() {
     }
     imageLoaded = true;
     sizeEverything();
+    startButton.style.display = 'block';
 }
 }
 // ##########################
@@ -218,13 +219,13 @@ let selectedCharacter = null;
 // ##########################
 // Drawing Helper Functions (No changes here)
 // ##########################
-function drawStarOfDavid(ctx, x, y, size) { /* ... no change ... */ }
-function drawRedStar(ctx, cx, cy, outerRadius) { /* ... no change ... */ }
+function drawStarOfDavid(ctx, x, y, size) { const r = size / 2; ctx.save(); ctx.translate(x, y); ctx.strokeStyle = '#ffd700'; ctx.lineWidth = Math.max(2, size / 10); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = -Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.restore(); }
+function drawRedStar(ctx, cx, cy, outerRadius) { const spikes = 5; const innerRadius = outerRadius / 2; let rot = Math.PI / 2 * 3; let x = cx; let y = cy; let step = Math.PI / spikes; ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius); for (let i = 0; i < spikes; i++) { x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step; x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step; } ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.lineWidth = 2; ctx.strokeStyle = '#8B0000'; ctx.stroke(); ctx.fillStyle = '#FF0000'; ctx.fill(); ctx.restore(); }
 // ##########################
 // MODIFIED: Obstacle Drawing Functions
 // ##########################
-function drawJewishBuilding(ctx, o, width, gap) { /* ... no change ... */ }
-function drawKremlinTower(ctx, o, width, gap) { /* ... no change ... */ }
+function drawJewishBuilding(ctx, o, width, gap) { ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#99c"; const winRows = Math.max(2, Math.floor(o.top / 24)); const winCols = Math.max(2, Math.floor(width / 18)); for (let r = 0; r < winRows; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), 5 + r * ((o.top - 10) / winRows), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top / 2, Math.min(width, 32)); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#99c"; const winRowsB = Math.max(2, Math.floor(bottomHeight / 24)); for (let r = 0; r < winRowsB; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), o.top + gap + 5 + r * ((bottomHeight - 10) / winRowsB), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top + gap + bottomHeight / 2, Math.min(width, 32)); }
+function drawKremlinTower(ctx, o, width, gap) { ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top - 10, 8, 10); } drawRedStar(ctx, o.x + width / 2, 30, 18); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top + gap, 8, 10); } drawRedStar(ctx, o.x + width / 2, o.top + gap + bottomHeight - 30, 18); }
 // NEW: Obstacle drawing function for the 'porox' character.
 // This function draws a simple pillar and renders the Roshen logo on it.
 function drawRoshenPillar(ctx, o, width, gap) {
@@ -280,9 +281,9 @@ let gameSpeed = 2.0;
 let plane = {
   x: 0, y: 0, width: 0, height: 0,
   gravity: 0.25, lift: -5, velocity: 0, rotation: 0,
-  draw() { /* ... no change ... */ },
+  draw() { if (!imageLoaded) return; ctx.save(); ctx.translate(this.x + this.width / 2, this.y + this.height / 2); ctx.rotate(this.rotation); ctx.drawImage(planeImage, -this.width / 2, -this.height / 2, this.width, this.height); ctx.restore(); },
   flap() { this.velocity = this.lift; },
-  update() { /* ... no change ... */ }
+  update() { this.velocity += this.gravity; this.y += this.velocity; this.rotation = Math.min(Math.max(this.velocity / (canvas.height * 0.04), -0.4), 0.7); if (this.y + this.height > canvas.height || this.y < 0) setGameOver(); }
 };
 /* Obstacles object */
 const obstacles = {
@@ -290,8 +291,8 @@ const obstacles = {
   width: 0,
   gap: 0,
   spawnInterval: 110,
-  spawn() { /* ... no change ... */ },
-  update() { /* ... no change ... */ },
+  spawn() { if (frames % this.spawnInterval === 0) { const minTop = Math.max(50, Math.floor(canvas.height * 0.1)); const maxTop = Math.floor(canvas.height - this.gap - canvas.height * 0.25); const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop; this.list.push({ x: canvas.width, top: topHeight, passed: false }); } },
+  update() { for (const o of this.list) { o.x -= gameSpeed; if (!o.passed && plane.x > o.x + this.width) { o.passed = true; score++; scoreElement.textContent = `CЧЕТ: ${score}`; gameSpeed = Math.min(gameSpeed + 0.1, 1000.0); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); } const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height }; const topRect = { x: o.x, y: 0, width: this.width, height: o.top }; const bottomRect = { x: o.x, y: o.top + this.gap, width: this.width, height: canvas.height - (o.top + this.gap) }; if (rectsOverlap(planeRect, topRect) || rectsOverlap(planeRect, bottomRect)) { if (pixelPerfectAgainstRect(planeRect, planeMask, topRect) || pixelPerfectAgainstRect(planeRect, planeMask, bottomRect)) { setGameOver(); } } } this.list = this.list.filter(o => o.x + this.width > 0); },
   draw() {
     if (!selectedCharacter) return;
     const drawFunc = characterConfigs[selectedCharacter].drawObstacle;
@@ -301,11 +302,11 @@ const obstacles = {
   }
 };
 /* Utility & Collision */
-function createMask(image) { /* ... no change ... */ }
-function rectsOverlap(a, b) { /* ... no change ... */ }
-function pixelPerfectAgainstRect(planeRect, planeMask, rect) { /* ... no change ... */ }
+function createMask(image) { const offCanvas = document.createElement('canvas'); offCanvas.width = image.width; offCanvas.height = image.height; const offCtx = offCanvas.getContext('2d'); offCtx.imageSmoothingEnabled = false; offCtx.drawImage(image, 0, 0); const data = offCtx.getImageData(0, 0, image.width, image.height).data; const mask = new Array(image.width * image.height); let m = 0; for (let i = 0; i < data.length; i += 4) { mask[m++] = data[i + 3] > 0; } return mask; }
+function rectsOverlap(a, b) { return !(a.x + a.width <= b.x || a.x >= b.x + b.width || a.y + a.height <= b.y || a.y >= b.y + b.height); }
+function pixelPerfectAgainstRect(planeRect, planeMask, rect) { if (!rectsOverlap(planeRect, rect)) return false; const startX = Math.max(planeRect.x, rect.x); const startY = Math.max(planeRect.y, rect.y); const endX = Math.min(planeRect.x + planeRect.width, rect.x + rect.width); const endY = Math.min(planeRect.y + planeRect.height, rect.y + rect.height); const sx = planeImage.width / planeRect.width; const sy = planeImage.height / planeRect.height; for (let y = startY; y < endY; y++) { const ay = Math.floor((y - planeRect.y) * sy); if (ay < 0 || ay >= planeImage.height) continue; for (let x = startX; x < endX; x++) { const ax = Math.floor((x - planeRect.x) * sx); if (ax < 0 || ax >= planeImage.width) continue; if (planeMask[ay * planeImage.width + ax]) { return true; } } } return false; }
 /* Background */
-function createCityBackground() { /* ... no change ... */ }
+function createCityBackground() { const bgCanvas = document.createElement('canvas'); bgCanvas.width = canvas.width; bgCanvas.height = canvas.height; const bgCtx = bgCanvas.getContext('2d'); bgCtx.imageSmoothingEnabled = false; const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height); gradient.addColorStop(0, '#4a7db9'); gradient.addColorStop(0.7, '#87CEEB'); bgCtx.fillStyle = gradient; bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height); bgCtx.fillStyle = '#ffdd00'; const sunR = Math.max(20, Math.floor(bgCanvas.width * 0.06)); bgCtx.beginPath(); bgCtx.arc(Math.floor(bgCanvas.width * 0.8), Math.floor(bgCanvas.height * 0.14), sunR, 0, Math.PI * 2); bgCtx.fill(); bgCtx.fillStyle = '#2c3e50'; for (let i = 0; i < bgCanvas.width; i += Math.max(30, Math.floor(bgCanvas.width * 0.08))) { const h = Math.floor(bgCanvas.height * (0.10 + Math.random() * 0.15)); const w = Math.max(25, Math.floor(bgCanvas.width * 0.07)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.20) - h, w, h); } bgCtx.fillStyle = '#34495e'; for (let i = 0; i < bgCanvas.width; i += Math.max(22, Math.floor(bgCanvas.width * 0.06))) { const h = Math.floor(bgCanvas.height * (0.07 + Math.random() * 0.10)); const w = Math.max(18, Math.floor(bgCanvas.width * 0.05)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.13) - h, w, h); } bgCtx.fillStyle = '#3498db'; bgCtx.fillRect(0, bgCanvas.height - Math.floor(bgCanvas.height * 0.035), bgCanvas.width, Math.floor(bgCanvas.height * 0.035)); return bgCanvas; }
 /* Resize / Scale */
 function sizeEverything() {
     canvas.width = window.innerWidth;
@@ -333,10 +334,10 @@ function drawIdle() {
   if (imageLoaded) plane.draw();
 }
 /* Game Flow */
-function setGameOver() { /* ... no change ... */ }
-function resetGame() { /* ... no change ... */ }
+function setGameOver() { if (gameOver) return; gameOver = true; const config = characterConfigs[selectedCharacter]; startScreenTitle.textContent = config.gameOverText; startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`; startButton.textContent = 'НАЧАТЬ ЗАНОВО'; startButton.style.display = 'block'; charSelectionContainer.style.display = 'none'; startScreen.style.display = 'flex'; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.game.setScore({ score }); } } catch (_) {} }
+function resetGame() { obstacles.list = []; gameOver = false; score = 0; frames = 0; scoreElement.textContent = `СЧЕТ: ${score}`; startScreen.style.display = 'none'; plane.velocity = 0; plane.rotation = 0; plane.y = Math.floor(canvas.height * 0.45); gameSpeed = Math.max(2.2, canvas.width * 0.0045); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); if (!gameStarted) { gameStarted = true; } if (window.Telegram && window.Telegram.WebApp) { Telegram.WebApp.requestFullscreen(); } loop(); }
 /* Main loop */
-function loop() { /* ... no change ... */ }
+function loop() { if (gameOver) return; ctx.drawImage(cityBackground, 0, 0); obstacles.spawn(); obstacles.update(); obstacles.draw(); plane.update(); plane.draw(); frames++; requestAnimationFrame(loop); }
 // ##########################
 // MODIFIED: Input Handling
 // Now accounts for loading multiple assets before starting.
@@ -354,18 +355,20 @@ function selectCharacter(charKey) {
     charButtons.forEach(b => b.classList.remove('selected'));
     document.querySelector(`.char-button[data-char="${charKey}"]`).classList.add('selected');
     charSelectionContainer.style.display = 'none';
-    startScreenP.textContent = `Вы выбрали: ${config.name}. Нажми чтобы полетать!`;
-    startButton.style.display = 'block';
+    startScreenP.textContent = `Вы выбрали: ${config.name}. Загрузка...`;
+    startButton.style.display = 'none'; // Hide until loaded
     // Reset asset counters for the new character image
     assetsLoaded = 0;
     imageLoaded = false; // Reset this too, since new images are loading
     
-    // Set onload BEFORE src (important!)
+    // Set onload and onerror BEFORE src (important!)
     planeImage.onload = assetLoaded;
+    planeImage.onerror = () => { console.error('Failed to load plane image: ' + config.imageSrc); startScreenP.textContent = `Ошибка загрузки изображения: ${config.imageSrc}`; };
     
     if (charKey === 'porox') {
         assetsToLoad = 2;
         roshenLogoImage.onload = assetLoaded;
+        roshenLogoImage.onerror = () => { console.error('Failed to load roshen logo'); startScreenP.textContent = 'Ошибка загрузки логотипа Roshen'; };
         roshenLogoImage.src = 'roshen-logo.png';
         if (roshenLogoImage.complete) assetLoaded(); // Handle immediate complete (e.g., cache)
     } else {
@@ -387,6 +390,8 @@ startButton.addEventListener('click', (e) => {
     // Start the game only if a character is chosen AND all assets are loaded
     if (selectedCharacter && imageLoaded) {
         resetGame();
+    } else {
+        console.log('Not ready yet');
     }
 });
 document.addEventListener('click', handleGameInput);
@@ -404,22 +409,11 @@ window.addEventListener('orientationchange', () => {
 });
 /* First layout */
 sizeEverything();
-// To fill in the function bodies that had "no change"
-function drawStarOfDavid(ctx, x, y, size) { const r = size / 2; ctx.save(); ctx.translate(x, y); ctx.strokeStyle = '#ffd700'; ctx.lineWidth = Math.max(2, size / 10); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = -Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.restore(); }
-function drawRedStar(ctx, cx, cy, outerRadius) { const spikes = 5; const innerRadius = outerRadius / 2; let rot = Math.PI / 2 * 3; let x = cx; let y = cy; let step = Math.PI / spikes; ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius); for (let i = 0; i < spikes; i++) { x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step; x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step; } ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.lineWidth = 2; ctx.strokeStyle = '#8B0000'; ctx.stroke(); ctx.fillStyle = '#FF0000'; ctx.fill(); ctx.restore(); }
-function drawJewishBuilding(ctx, o, width, gap) { ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#99c"; const winRows = Math.max(2, Math.floor(o.top / 24)); const winCols = Math.max(2, Math.floor(width / 18)); for (let r = 0; r < winRows; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), 5 + r * ((o.top - 10) / winRows), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top / 2, Math.min(width, 32)); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#ccc"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#99c"; const winRowsB = Math.max(2, Math.floor(bottomHeight / 24)); for (let r = 0; r < winRowsB; r++) { for (let c = 0; c < winCols; c++) { ctx.fillRect(o.x + 5 + c * ((width - 10) / winCols), o.top + gap + 5 + r * ((bottomHeight - 10) / winRowsB), 8, 12); } } drawStarOfDavid(ctx, o.x + width / 2, o.top + gap + bottomHeight / 2, Math.min(width, 32)); }
-function drawKremlinTower(ctx, o, width, gap) { ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, 0, width, o.top); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top - 10, 8, 10); } drawRedStar(ctx, o.x + width / 2, 30, 18); const bottomHeight = canvas.height - (o.top + gap); ctx.fillStyle = "#c23b22"; ctx.fillRect(o.x, o.top + gap, width, bottomHeight); ctx.fillStyle = "#8B0000"; for(let i = 0; i < width; i += 15) { ctx.fillRect(o.x + i, o.top + gap, 8, 10); } drawRedStar(ctx, o.x + width / 2, o.top + gap + bottomHeight - 30, 18); }
-plane.draw = function() { if (!imageLoaded) return; ctx.save(); ctx.translate(this.x + this.width / 2, this.y + this.height / 2); ctx.rotate(this.rotation); ctx.drawImage(planeImage, -this.width / 2, -this.height / 2, this.width, this.height); ctx.restore(); };
-plane.update = function() { this.velocity += this.gravity; this.y += this.velocity; this.rotation = Math.min(Math.max(this.velocity / (canvas.height * 0.04), -0.4), 0.7); if (this.y + this.height > canvas.height || this.y < 0) setGameOver(); };
-obstacles.spawn = function() { if (frames % this.spawnInterval === 0) { const minTop = Math.max(50, Math.floor(canvas.height * 0.1)); const maxTop = Math.floor(canvas.height - this.gap - canvas.height * 0.25); const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop; this.list.push({ x: canvas.width, top: topHeight, passed: false }); } };
-obstacles.update = function() { for (const o of this.list) { o.x -= gameSpeed; if (!o.passed && plane.x > o.x + this.width) { o.passed = true; score++; scoreElement.textContent = `CЧЕТ: ${score}`; gameSpeed = Math.min(gameSpeed + 0.1, 1000.0); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); } const planeRect = { x: plane.x, y: plane.y, width: plane.width, height: plane.height }; const topRect = { x: o.x, y: 0, width: this.width, height: o.top }; const bottomRect = { x: o.x, y: o.top + this.gap, width: this.width, height: canvas.height - (o.top + this.gap) }; if (rectsOverlap(planeRect, topRect) || rectsOverlap(planeRect, bottomRect)) { if (pixelPerfectAgainstRect(planeRect, planeMask, topRect) || pixelPerfectAgainstRect(planeRect, planeMask, bottomRect)) { setGameOver(); } } } this.list = this.list.filter(o => o.x + this.width > 0); };
-function createMask(image) { const offCanvas = document.createElement('canvas'); offCanvas.width = image.width; offCanvas.height = image.height; const offCtx = offCanvas.getContext('2d'); offCtx.imageSmoothingEnabled = false; offCtx.drawImage(image, 0, 0); const data = offCtx.getImageData(0, 0, image.width, image.height).data; const mask = new Array(image.width * image.height); let m = 0; for (let i = 0; i < data.length; i += 4) { mask[m++] = data[i + 3] > 0; } return mask; }
-function rectsOverlap(a, b) { return !(a.x + a.width <= b.x || a.x >= b.x + b.width || a.y + a.height <= b.y || a.y >= b.y + b.height); }
-function pixelPerfectAgainstRect(planeRect, planeMask, rect) { if (!rectsOverlap(planeRect, rect)) return false; const startX = Math.max(planeRect.x, rect.x); const startY = Math.max(planeRect.y, rect.y); const endX = Math.min(planeRect.x + planeRect.width, rect.x + rect.width); const endY = Math.min(planeRect.y + planeRect.height, rect.y + rect.height); const sx = planeImage.width / planeRect.width; const sy = planeImage.height / planeRect.height; for (let y = startY; y < endY; y++) { const ay = Math.floor((y - planeRect.y) * sy); if (ay < 0 || ay >= planeImage.height) continue; for (let x = startX; x < endX; x++) { const ax = Math.floor((x - planeRect.x) * sx); if (ax < 0 || ax >= planeImage.width) continue; if (planeMask[ay * planeImage.width + ax]) { return true; } } } return false; }
-function createCityBackground() { const bgCanvas = document.createElement('canvas'); bgCanvas.width = canvas.width; bgCanvas.height = canvas.height; const bgCtx = bgCanvas.getContext('2d'); bgCtx.imageSmoothingEnabled = false; const gradient = bgCtx.createLinearGradient(0, 0, 0, bgCanvas.height); gradient.addColorStop(0, '#4a7db9'); gradient.addColorStop(0.7, '#87CEEB'); bgCtx.fillStyle = gradient; bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height); bgCtx.fillStyle = '#ffdd00'; const sunR = Math.max(20, Math.floor(bgCanvas.width * 0.06)); bgCtx.beginPath(); bgCtx.arc(Math.floor(bgCanvas.width * 0.8), Math.floor(bgCanvas.height * 0.14), sunR, 0, Math.PI * 2); bgCtx.fill(); bgCtx.fillStyle = '#2c3e50'; for (let i = 0; i < bgCanvas.width; i += Math.max(30, Math.floor(bgCanvas.width * 0.08))) { const h = Math.floor(bgCanvas.height * (0.10 + Math.random() * 0.15)); const w = Math.max(25, Math.floor(bgCanvas.width * 0.07)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.20) - h, w, h); } bgCtx.fillStyle = '#34495e'; for (let i = 0; i < bgCanvas.width; i += Math.max(22, Math.floor(bgCanvas.width * 0.06))) { const h = Math.floor(bgCanvas.height * (0.07 + Math.random() * 0.10)); const w = Math.max(18, Math.floor(bgCanvas.width * 0.05)); bgCtx.fillRect(i, bgCanvas.height - Math.floor(bgCanvas.height * 0.13) - h, w, h); } bgCtx.fillStyle = '#3498db'; bgCtx.fillRect(0, bgCanvas.height - Math.floor(bgCanvas.height * 0.035), bgCanvas.width, Math.floor(bgCanvas.height * 0.035)); return bgCanvas; }
-function setGameOver() { if (gameOver) return; gameOver = true; const config = characterConfigs[selectedCharacter]; startScreenTitle.textContent = config.gameOverText; startScreen.querySelector('p').textContent = `СЧЕТ: ${score}. Нажми чтобы начать заново`; startButton.textContent = 'НАЧАТЬ ЗАНОВО'; startButton.style.display = 'block'; charSelectionContainer.style.display = 'none'; startScreen.style.display = 'flex'; try { if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.game) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.game.setScore({ score }); } } catch (_) {} }
-function resetGame() { obstacles.list = []; gameOver = false; score = 0; frames = 0; scoreElement.textContent = `СЧЕТ: ${score}`; startScreen.style.display = 'none'; plane.velocity = 0; plane.rotation = 0; plane.y = Math.floor(canvas.height * 0.45); gameSpeed = Math.max(2.2, canvas.width * 0.0045); obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + canvas.width * 0.25) / gameSpeed)); if (!gameStarted) { gameStarted = true; } loop(); }
-function loop() { if (gameOver) return; ctx.drawImage(cityBackground, 0, 0); obstacles.spawn(); obstacles.update(); obstacles.draw(); plane.update(); plane.draw(); frames++; requestAnimationFrame(loop); }
+
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
 </script>
 </body>
 </html>
