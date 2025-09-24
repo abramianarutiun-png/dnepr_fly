@@ -34,7 +34,7 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
     border-radius: 10px;
     overflow: hidden;
-    touch-action: none;  
+    touch-action: none;
   }
   #gameCanvas {
     display: block;
@@ -157,20 +157,16 @@
       <button class="start-button" style="display:none;">НАЧАТЬ ПОЛЕТ</button>
     </div>
   </div>
-
 <script>
 // ##########################
 // NEW: Asset Loading
 // We create image objects here and track their loading status.
 // ##########################
 const roshenLogoImage = new Image();
-roshenLogoImage.src = 'roshen-logo.png'; // Make sure this file exists
-
 const planeImage = new Image();
-let assetsToLoad = 1; // Starts at 1 for the plane image
+let assetsToLoad = 0; // Starts at 0
 let assetsLoaded = 0;
 let imageLoaded = false;
-
 function assetLoaded() {
     assetsLoaded++;
     // When all assets are loaded, enable the game
@@ -186,12 +182,7 @@ function assetLoaded() {
     imageLoaded = true;
     sizeEverything();
 }
-
 }
-if (roshenLogoImage.complete) assetLoaded();
-if (planeImage.complete) assetLoaded();
-
-
 // ##########################
 // MODIFIED: Character Configuration Object
 // Added the new 'porox' character with unique settings.
@@ -207,7 +198,7 @@ const characterConfigs = {
     },
     'moskal': {
         name: 'Москаль',
-        imageSrc: 'moskal-letun.png', 
+        imageSrc: 'moskal-letun.png',
         gravityMultiplier: 1.0,
         liftMultiplier: 1.0,
         drawObstacle: drawKremlinTower,
@@ -218,69 +209,59 @@ const characterConfigs = {
         name: 'Порох',
         imageSrc: 'porox-letun.png', // Create this image file
         gravityMultiplier: 1.0, // Heavier, falls faster
-        liftMultiplier: 1.0,   // Stronger flap
+        liftMultiplier: 1.0, // Stronger flap
         drawObstacle: drawRoshenPillar,
         gameOverText: 'ОЙ, врезался в Рошен!'
     }
 };
 let selectedCharacter = null;
-
 // ##########################
 // Drawing Helper Functions (No changes here)
 // ##########################
 function drawStarOfDavid(ctx, x, y, size) { /* ... no change ... */ }
 function drawRedStar(ctx, cx, cy, outerRadius) { /* ... no change ... */ }
-
-
 // ##########################
 // MODIFIED: Obstacle Drawing Functions
 // ##########################
 function drawJewishBuilding(ctx, o, width, gap) { /* ... no change ... */ }
 function drawKremlinTower(ctx, o, width, gap) { /* ... no change ... */ }
-
 // NEW: Obstacle drawing function for the 'porox' character.
 // This function draws a simple pillar and renders the Roshen logo on it.
 function drawRoshenPillar(ctx, o, width, gap) {
     const pillarColor = "#7B3F00"; // Chocolate brown color
-
     // --- Top Pillar ---
     ctx.fillStyle = pillarColor;
     ctx.fillRect(o.x, 0, width, o.top);
-    
+   
     // Calculate logo size, making it 80% of the pillar's width
     const logoSize = width * 0.8;
     const logoX = o.x + (width - logoSize) / 2; // Center the logo horizontally
-    const logoY = (o.top - logoSize) / 2;       // Center the logo vertically
-    
+    const logoY = (o.top - logoSize) / 2; // Center the logo vertically
+   
     // Draw the Roshen logo on the top pillar if the image is loaded
     if (roshenLogoImage.complete) {
         ctx.drawImage(roshenLogoImage, logoX, logoY, logoSize, logoSize);
     }
-
     // --- Bottom Pillar ---
     const bottomHeight = canvas.height - (o.top + gap);
     ctx.fillStyle = pillarColor;
     ctx.fillRect(o.x, o.top + gap, width, bottomHeight);
-
     // Calculate logo position for the bottom pillar
     const logoYBottom = o.top + gap + (bottomHeight - logoSize) / 2;
-    
+   
     // Draw the Roshen logo on the bottom pillar
     if (roshenLogoImage.complete) {
         ctx.drawImage(roshenLogoImage, logoX, logoYBottom, logoSize, logoSize);
     }
 }
-
 // ##########################
 // Setup and Game Logic
 // ##########################
 let planeMask = [];
 let planeAspect = 1.0; // Default aspect ratio
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: true });
 ctx.imageSmoothingEnabled = false;
-
 const scoreElement = document.querySelector('.score');
 const startScreen = document.querySelector('.start-screen');
 const startButton = document.querySelector('.start-button');
@@ -288,7 +269,6 @@ const startScreenTitle = startScreen.querySelector('h1');
 const startScreenP = document.getElementById('start-screen-p');
 const charSelectionContainer = document.querySelector('.character-selection');
 const charButtons = document.querySelectorAll('.char-button');
-
 /* Game State */
 let gameOver = false;
 let gameStarted = false;
@@ -296,7 +276,6 @@ let score = 0;
 let frames = 0;
 let cityBackground = null;
 let gameSpeed = 2.0;
-
 /* Player object */
 let plane = {
   x: 0, y: 0, width: 0, height: 0,
@@ -305,7 +284,6 @@ let plane = {
   flap() { this.velocity = this.lift; },
   update() { /* ... no change ... */ }
 };
-
 /* Obstacles object */
 const obstacles = {
   list: [],
@@ -322,15 +300,12 @@ const obstacles = {
     }
   }
 };
-
 /* Utility & Collision */
 function createMask(image) { /* ... no change ... */ }
 function rectsOverlap(a, b) { /* ... no change ... */ }
 function pixelPerfectAgainstRect(planeRect, planeMask, rect) { /* ... no change ... */ }
-
 /* Background */
 function createCityBackground() { /* ... no change ... */ }
-
 /* Resize / Scale */
 function sizeEverything() {
     canvas.width = window.innerWidth;
@@ -338,39 +313,30 @@ function sizeEverything() {
     const baseW = canvas.width;
     const baseH = canvas.height;
     const config = characterConfigs[selectedCharacter || 'benya'];
-
     gameSpeed = Math.max(2.2, baseW * 0.0045);
     plane.width = Math.max(40, Math.floor(baseW * 0.15));
     plane.height = Math.max(24, Math.floor(plane.width * planeAspect));
-
     if (!gameStarted) {
         plane.x = Math.floor(baseW * 0.17);
         plane.y = Math.floor(baseH * 0.45);
     }
-
     plane.gravity = Math.max(0.15, baseH * 0.00045) * config.gravityMultiplier;
     plane.lift = -Math.max(4, Math.floor(baseH * 0.01)) * config.liftMultiplier;
-
     obstacles.width = Math.max(50, Math.floor(baseW * 0.14));
     obstacles.gap = Math.max(120, Math.floor(baseH * 0.28));
     obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + baseW * 0.25) / gameSpeed));
-
     cityBackground = createCityBackground();
     drawIdle();
 }
-
 function drawIdle() {
   ctx.drawImage(cityBackground, 0, 0);
   if (imageLoaded) plane.draw();
 }
-
 /* Game Flow */
 function setGameOver() { /* ... no change ... */ }
 function resetGame() { /* ... no change ... */ }
-
 /* Main loop */
 function loop() { /* ... no change ... */ }
-
 // ##########################
 // MODIFIED: Input Handling
 // Now accounts for loading multiple assets before starting.
@@ -380,37 +346,42 @@ function handleGameInput() {
     plane.flap();
   }
 }
-
 function selectCharacter(charKey) {
     if (!characterConfigs[charKey]) return;
-    
+   
     selectedCharacter = charKey;
     const config = characterConfigs[selectedCharacter];
-
     charButtons.forEach(b => b.classList.remove('selected'));
     document.querySelector(`.char-button[data-char="${charKey}"]`).classList.add('selected');
-
     charSelectionContainer.style.display = 'none';
     startScreenP.textContent = `Вы выбрали: ${config.name}. Нажми чтобы полетать!`;
     startButton.style.display = 'block';
-
     // Reset asset counters for the new character image
-    assetsToLoad = 2; // Now we need plane image AND logo image
     assetsLoaded = 0;
+    imageLoaded = false; // Reset this too, since new images are loading
     
-    // Trigger loading for both assets. The onload events will call assetLoaded().
-    roshenLogoImage.src = 'roshen-logo.png'; // Re-trigger just in case
+    // Set onload BEFORE src (important!)
+    planeImage.onload = assetLoaded;
+    
+    if (charKey === 'porox') {
+        assetsToLoad = 2;
+        roshenLogoImage.onload = assetLoaded;
+        roshenLogoImage.src = 'roshen-logo.png';
+        if (roshenLogoImage.complete) assetLoaded(); // Handle immediate complete (e.g., cache)
+    } else {
+        assetsToLoad = 1;
+    }
+    
     planeImage.src = config.imageSrc;
+    if (planeImage.complete) assetLoaded(); // Handle immediate complete (e.g., cache)
 }
-
 charButtons.forEach(button => {
     button.addEventListener('click', (e) => {
-        e.stopPropagation(); 
+        e.stopPropagation();
         const charKey = button.dataset.char;
         selectCharacter(charKey);
     });
 });
-
 startButton.addEventListener('click', (e) => {
     e.stopPropagation();
     // Start the game only if a character is chosen AND all assets are loaded
@@ -418,7 +389,6 @@ startButton.addEventListener('click', (e) => {
         resetGame();
     }
 });
-
 document.addEventListener('click', handleGameInput);
 document.addEventListener('touchstart', (e) => {
   e.preventDefault();
@@ -427,16 +397,13 @@ document.addEventListener('touchstart', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space') handleGameInput();
 });
-
 /* Init & Resize */
 window.addEventListener('resize', sizeEverything);
 window.addEventListener('orientationchange', () => {
   setTimeout(sizeEverything, 250);
 });
-
 /* First layout */
 sizeEverything();
-
 // To fill in the function bodies that had "no change"
 function drawStarOfDavid(ctx, x, y, size) { const r = size / 2; ctx.save(); ctx.translate(x, y); ctx.strokeStyle = '#ffd700'; ctx.lineWidth = Math.max(2, size / 10); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.beginPath(); for (let i = 0; i < 3; i++) { const angle = -Math.PI / 2 + i * (2 * Math.PI / 3); ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle)); } ctx.closePath(); ctx.stroke(); ctx.restore(); }
 function drawRedStar(ctx, cx, cy, outerRadius) { const spikes = 5; const innerRadius = outerRadius / 2; let rot = Math.PI / 2 * 3; let x = cx; let y = cy; let step = Math.PI / spikes; ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius); for (let i = 0; i < spikes; i++) { x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step; x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step; } ctx.lineTo(cx, cy - outerRadius); ctx.closePath(); ctx.lineWidth = 2; ctx.strokeStyle = '#8B0000'; ctx.stroke(); ctx.fillStyle = '#FF0000'; ctx.fill(); ctx.restore(); }
