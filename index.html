@@ -326,8 +326,8 @@ function createCityBackground() { /* ... no change ... */ }
 
 /* Resize / Scale */
 function sizeEverything() {
-    canvas.width = window.innerWidth - 20;
-    canvas.height = window.innerHeight - 20;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     const baseW = canvas.width;
     const baseH = canvas.height;
     const config = characterConfigs[selectedCharacter || 'benya'];
@@ -344,7 +344,7 @@ function sizeEverything() {
     plane.gravity = Math.max(0.15, baseH * 0.00045) * config.gravityMultiplier;
     plane.lift = -Math.max(4, Math.floor(baseH * 0.01)) * config.liftMultiplier;
 
-    obstacles.width = Math.max(50, Math.floor(baseW * 0.14)); // Slightly wider pillars
+    obstacles.width = Math.max(50, Math.floor(baseW * 0.14));
     obstacles.gap = Math.max(120, Math.floor(baseH * 0.28));
     obstacles.spawnInterval = Math.max(90, Math.floor((obstacles.width + baseW * 0.25) / gameSpeed));
 
