@@ -174,11 +174,18 @@ function assetLoaded() {
     assetsLoaded++;
     // When all assets are loaded, enable the game
     if (assetsLoaded >= assetsToLoad) {
-        imageLoaded = true;
+    if (planeImage.width > 0 && planeImage.height > 0) {
         planeMask = createMask(planeImage);
         planeAspect = planeImage.height / planeImage.width;
-        sizeEverything();
+    } else {
+        console.warn("Plane image not ready yet, skipping mask creation.");
+        planeMask = [];
+        planeAspect = 1.0;
     }
+    imageLoaded = true;
+    sizeEverything();
+}
+
 }
 if (roshenLogoImage.complete) assetLoaded();
 if (planeImage.complete) assetLoaded();
