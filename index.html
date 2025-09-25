@@ -396,12 +396,11 @@ charButtons.forEach(button => {
 });
 document.addEventListener('click', handleGameInput);
 document.addEventListener('touchstart', (e) => {
-  e.preventDefault();
+  if (gameStarted || gameOver || (selectedCharacter && imageLoaded)) {
+    e.preventDefault();
+  }
   handleGameInput();
 }, { passive: false });
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') handleGameInput();
-});
 /* Init & Resize */
 window.addEventListener('resize', sizeEverything);
 window.addEventListener('orientationchange', () => {
