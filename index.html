@@ -358,35 +358,52 @@ function handleGameInput() {
 }
 function selectCharacter(charKey) {
     if (!characterConfigs[charKey]) return;
-   
+
     selectedCharacter = charKey;
     const config = characterConfigs[selectedCharacter];
+
+    // Update UI
     charButtons.forEach(b => b.classList.remove('selected'));
-    document.querySelector(`.char-button[data-char="${charKey}"]`).classList.add('selected');
+    document
+        .querySelector(`.char-button[data-char="${charKey}"]`)
+        .classList.add('selected');
     charSelectionContainer.style.display = 'none';
     startScreenP.textContent = `Вы выбрали: ${config.name}. Загрузка...`;
-    startButton.style.display = 'none'; // Hide until loaded
-    // Reset asset counters for the new character image
+    startButton.style.display = 'none';
+
+    // Reset counters
     assetsLoaded = 0;
-    imageLoaded = false; // Reset this too, since new images are loading
-    
-    // Set onload and onerror BEFORE src (important!)
+    imageLoaded = false;
+    assetsToLoad = (charKey === "porox") ? 2 : 1;
+
+    // Attach handlers BEFORE src
     planeImage.onload = assetLoaded;
-    planeImage.onerror = () => { console.error('Failed to load plane image: ' + config.imageSrc); startScreenP.textContent = `Ошибка загрузки изображения: ${config.imageSrc}`; };
-    
-    if (charKey === 'porox') {
-        assetsToLoad = 2;
-        roshenLogoImage.onload = assetLoaded;
-        roshenLogoImage.onerror = () => { console.error('Failed to load roshen logo'); startScreenP.textContent = 'Ошибка загрузки логотипа Roshen'; };
-        roshenLogoImage.src = 'roshen-logo.png';
-        if (roshenLogoImage.complete) assetLoaded(); // Handle immediate complete (e.g., cache)
-    } else {
-        assetsToLoad = 1;
-    }
-    
+    planeImage.onerror = () => {
+        console.error("Failed to load plane image: " + config.imageSrc);
+        startScreenP.textContent = `Ошибка загрузки: ${config.imageSrc}`;
+    };
     planeImage.src = config.imageSrc;
-    if (planeImage.complete) assetLoaded(); // Handle immediate complete (e.g., cache)
+
+    if (charKey === "porox") {
+        roshenLogoImage.onload = assetLoaded;
+        roshenLogoImage.onerror = () => {
+            console.error("Failed to load roshen logo");
+            startScreenP.textContent = "Ошибка загрузки Roshen";
+        };
+        roshenLogoImage.src = "roshen-logo.png";
+    }
+
+    // Force trigger if already cached *and* has valid dimensions
+    if (planeImage.complete && planeImage.naturalWidth > 0) assetLoaded();
+    if (
+        charKey === "porox" &&
+        roshenLogoImage.complete &&
+        roshenLogoImage.naturalWidth > 0
+    ) {
+        assetLoaded();
+    }
 }
+
 charButtons.forEach(button => {
     button.addEventListener('click', (e) => {
         e.stopPropagation();
